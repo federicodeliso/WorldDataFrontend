@@ -68,9 +68,13 @@ function Correlation() {
   const [xIndicator, setXIndicator] = useState("GDP");
   const [yIndicator, setYIndicator] = useState("POP");
 
-  const [year, setYear] = useState(2024);
+  const [year, setYear] = useState(2023);
   const [selectedCountries, setSelectedCountries] =
-    useState<string[]>([]);
+    useState<string[]>([
+      "Italy",
+      "Germany",
+      "France",
+      "Spain",]);
 
   const [countrySearch, setCountrySearch] = useState("");
   const [countriesOpen, setCountriesOpen] =
