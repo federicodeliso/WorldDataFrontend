@@ -22,6 +22,9 @@ import "./App.css";
 
 const API = "https://worlddataapi-kf6d.onrender.com";
 
+// Temporary password — change this later.
+const SITE_PASSWORD = "W7mQ2xL9pR4k";
+
 type Stats = {
   entities: number;
   indicators: number;
@@ -55,15 +58,49 @@ const navItems = [
 ];
 
 function App() {
+  const [authenticated, setAuthenticated] = useState(() => {
+    return (
+      sessionStorage.getItem("worlddata_authenticated") === "true"
+    );
+  });
+
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+
   const [activePage, setActivePage] = useState("Overview");
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (password === SITE_PASSWORD) {
+      sessionStorage.setItem(
+        "worlddata_authenticated",
+        "true"
+      );
+
+      setAuthenticated(true);
+      setPassword("");
+      setPasswordError("");
+    } else {
+      setPasswordError("Incorrect password.");
+      setPassword("");
+    }
+  }
+
+  /*
+   * IMPORTANT:
+   * This useEffect must be called on every render.
+   * It therefore has to be ABOVE the authentication return.
+   */
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -81,15 +118,21 @@ function App() {
         ]);
 
         if (!statsResponse.ok) {
-          throw new Error("Could not load database statistics.");
+          throw new Error(
+            "Could not load database statistics."
+          );
         }
 
         if (!indicatorsResponse.ok) {
-          throw new Error("Could not load indicators.");
+          throw new Error(
+            "Could not load indicators."
+          );
         }
 
         if (!categoriesResponse.ok) {
-          throw new Error("Could not load categories.");
+          throw new Error(
+            "Could not load categories."
+          );
         }
 
         const statsData: Stats =
@@ -118,13 +161,208 @@ function App() {
     loadDashboard();
   }, []);
 
+  /*
+   * Password screen
+   */
+  if (!authenticated) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f8fafc",
+          padding: "24px",
+          fontFamily: "inherit",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "380px",
+            padding: "32px",
+            border: "1px solid #e2e8f0",
+            borderRadius: "10px",
+            background: "#ffffff",
+            boxShadow:
+              "0 10px 30px rgba(15, 23, 42, 0.06)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "28px",
+            }}
+          >
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "8px",
+                background: "#0f172a",
+                color: "#ffffff",
+                fontSize: "18px",
+                fontWeight: 700,
+              }}
+            >
+              W
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "#111827",
+                }}
+              >
+                WorldData
+              </div>
+
+              <div
+                style={{
+                  marginTop: "2px",
+                  fontSize: "11px",
+                  color: "#64748b",
+                }}
+              >
+                Economic Data Platform
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "20px",
+            }}
+          >
+            <div
+              style={{
+                marginBottom: "6px",
+                fontSize: "10px",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "#64748b",
+              }}
+            >
+              PRIVATE ACCESS
+            </div>
+
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "24px",
+                fontWeight: 600,
+                letterSpacing: "-0.02em",
+                color: "#111827",
+              }}
+            >
+              Welcome to WorldData
+            </h1>
+
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: "13px",
+                lineHeight: 1.5,
+                color: "#64748b",
+              }}
+            >
+              Enter the password to access
+              the platform.
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "7px",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#475569",
+              }}
+            >
+              PASSWORD
+            </label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
+              autoFocus
+              placeholder="Enter password"
+              style={{
+                width: "100%",
+                height: "42px",
+                boxSizing: "border-box",
+                padding: "0 12px",
+                border: "1px solid #dfe4ea",
+                borderRadius: "7px",
+                background: "#ffffff",
+                color: "#111827",
+                fontFamily: "inherit",
+                fontSize: "13px",
+                outline: "none",
+              }}
+            />
+
+            {passwordError && (
+              <div
+                style={{
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "#b91c1c",
+                }}
+              >
+                {passwordError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              style={{
+                width: "100%",
+                height: "42px",
+                marginTop: "14px",
+                border: "none",
+                borderRadius: "7px",
+                background: "#0f172a",
+                color: "#ffffff",
+                fontFamily: "inherit",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Enter WorldData
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const filteredIndicators = indicators
     .filter((indicator) => {
       const query = search.toLowerCase();
 
       return (
-        indicator.code.toLowerCase().includes(query) ||
-        indicator.name.toLowerCase().includes(query) ||
+        indicator.code
+          .toLowerCase()
+          .includes(query) ||
+        indicator.name
+          .toLowerCase()
+          .includes(query) ||
         (indicator.category ?? "")
           .toLowerCase()
           .includes(query)
@@ -146,7 +384,9 @@ function App() {
       >
         <div className="sidebar-top">
           <div className="brand">
-            <div className="brand-mark">W</div>
+            <div className="brand-mark">
+              W
+            </div>
 
             <div>
               <div className="brand-name">
@@ -241,7 +481,9 @@ function App() {
 
             <div>
               <strong>API online</strong>
-              <small>WorldData API</small>
+              <small>
+                WorldData API
+              </small>
             </div>
           </div>
         </div>
@@ -272,7 +514,9 @@ function App() {
           <div className="breadcrumb">
             <span>WorldData</span>
             <span>/</span>
-            <strong>{activePage}</strong>
+            <strong>
+              {activePage}
+            </strong>
           </div>
 
           <div className="topbar-right">
@@ -286,6 +530,7 @@ function App() {
           {loading && (
             <div className="loading-screen">
               <div className="loading-spinner" />
+
               <span>
                 Loading WorldData...
               </span>
@@ -327,11 +572,13 @@ function App() {
                     </h1>
 
                     <p>
-                      Economic, demographic and
-                      fiscal indicators covering
-                      countries, regions and
-                      subnational entities across
-                      decades of historical data.
+                      Economic, demographic
+                      and fiscal indicators
+                      covering countries,
+                      regions and
+                      subnational entities
+                      across decades of
+                      historical data.
                     </p>
                   </div>
 
@@ -341,12 +588,14 @@ function App() {
                     </span>
 
                     <strong>
-                      {stats?.min_year ?? "—"} —{" "}
+                      {stats?.min_year ?? "—"}{" "}
+                      —{" "}
                       {stats?.max_year ?? "—"}
                     </strong>
 
                     <small>
-                      Latest available observations
+                      Latest available
+                      observations
                     </small>
                   </div>
                 </section>
@@ -419,7 +668,9 @@ function App() {
                           key={
                             indicator.indicator_id
                           }
-                          indicator={indicator}
+                          indicator={
+                            indicator
+                          }
                         />
                       )
                     )}
@@ -440,31 +691,37 @@ function App() {
                       </div>
 
                       <span className="panel-count">
-                        {categories.length}
+                        {
+                          categories.length
+                        }
                       </span>
                     </div>
 
                     <div className="category-list">
                       {categories
                         .slice(0, 8)
-                        .map((category) => (
-                          <div
-                            className="category-row"
-                            key={
-                              category.category
-                            }
-                          >
-                            <span>
-                              {category.category}
-                            </span>
-
-                            <strong>
-                              {
-                                category.indicator_count
+                        .map(
+                          (category) => (
+                            <div
+                              className="category-row"
+                              key={
+                                category.category
                               }
-                            </strong>
-                          </div>
-                        ))}
+                            >
+                              <span>
+                                {
+                                  category.category
+                                }
+                              </span>
+
+                              <strong>
+                                {
+                                  category.indicator_count
+                                }
+                              </strong>
+                            </div>
+                          )
+                        )}
                     </div>
                   </div>
 
@@ -478,20 +735,25 @@ function App() {
                     </h2>
 
                     <p>
-                      WorldData separates the
-                      data layer from the
-                      interface, allowing the
-                      same database to power
+                      WorldData separates
+                      the data layer from
+                      the interface,
+                      allowing the same
+                      database to power
                       charts, analysis,
-                      applications and future
-                      public tools.
+                      applications and
+                      future public tools.
                     </p>
 
                     <div className="architecture">
                       <span>React</span>
+
                       <i>→</i>
+
                       <span>FastAPI</span>
+
                       <i>→</i>
+
                       <span>PostgreSQL</span>
                     </div>
                   </div>
@@ -546,8 +808,12 @@ function StatCard({
   return (
     <div className="stat-card-new">
       <span>{label}</span>
+
       <strong>{value}</strong>
-      <small>{description}</small>
+
+      <small>
+        {description}
+      </small>
     </div>
   );
 }
@@ -561,7 +827,8 @@ function IndicatorCard({
     <button className="indicator-card">
       <div className="indicator-card-top">
         <span className="indicator-category">
-          {indicator.category ?? "Other"}
+          {indicator.category ??
+            "Other"}
         </span>
 
         <span className="indicator-arrow">
@@ -569,7 +836,9 @@ function IndicatorCard({
         </span>
       </div>
 
-      <strong>{indicator.code}</strong>
+      <strong>
+        {indicator.code}
+      </strong>
 
       <p>
         {indicator.description ??
@@ -578,7 +847,8 @@ function IndicatorCard({
 
       <div className="indicator-meta">
         <span>
-          {indicator.frequency ?? "Annual"}
+          {indicator.frequency ??
+            "Annual"}
         </span>
 
         <span>
