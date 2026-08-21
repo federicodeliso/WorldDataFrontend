@@ -74,7 +74,8 @@ function Correlation() {
       "Italy",
       "Germany",
       "France",
-      "Spain",]);
+      "Spain",
+    ]);
 
   const [countrySearch, setCountrySearch] = useState("");
   const [countriesOpen, setCountriesOpen] =
