@@ -70,12 +70,7 @@ function Correlation() {
 
   const [year, setYear] = useState(2023);
   const [selectedCountries, setSelectedCountries] =
-    useState<string[]>([
-      "Italy",
-      "Germany",
-      "France",
-      "Spain",
-    ]);
+    useState<string[]>([]);
 
   const [countrySearch, setCountrySearch] = useState("");
   const [countriesOpen, setCountriesOpen] =
