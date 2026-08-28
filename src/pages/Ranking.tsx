@@ -13,10 +13,13 @@ import {
   ArrowDown,
   ArrowUp,
   Loader2,
+  Plus,
+  X,
 } from "lucide-react";
 import "./Ranking.css";
 
-const API = "https://worlddataapi-kf6d.onrender.com";
+const API =
+  "https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   name?: string;
@@ -32,47 +35,188 @@ type Indicator = {
   unit?: string | null;
 };
 
+type RankingRow = {
+  country: string;
+  year: number;
+  values: Record<string, number>;
+};
+
+type Direction = "top" | "bottom";
+
+type RegionFilter = "all" | "oecd";
+
+/* =========================================================
+   OECD MEMBERS
+   ========================================================= */
+
+const OECD_COUNTRIES = new Set([
+  "Australia",
+  "Austria",
+  "Belgium",
+  "Canada",
+  "Chile",
+  "Colombia",
+  "Costa Rica",
+  "Czech Republic",
+  "Czechia",
+  "Denmark",
+  "Estonia",
+  "Finland",
+  "France",
+  "Germany",
+  "Greece",
+  "Hungary",
+  "Iceland",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Japan",
+  "Korea",
+  "South Korea",
+  "Latvia",
+  "Lithuania",
+  "Luxembourg",
+  "Mexico",
+  "Netherlands",
+  "New Zealand",
+  "Norway",
+  "Poland",
+  "Portugal",
+  "Slovakia",
+  "Slovenia",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "Türkiye",
+  "Turkey",
+  "United Kingdom",
+  "United States",
+]);
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function getCountryName(country: Country) {
+  return (
+    country.name ??
+    country.country_name ??
+    country.code ??
+    country.iso3 ??
+    ""
+  );
+}
+
+function isOECDCountry(country: Country) {
+  const name = getCountryName(country).trim();
+
+  if (OECD_COUNTRIES.has(name)) {
+    return true;
+  }
+
+  const normalized = name.toLowerCase();
+
+  return (
+    normalized === "czech republic" ||
+    normalized === "czechia" ||
+    normalized === "south korea" ||
+    normalized === "korea" ||
+    normalized === "turkey" ||
+    normalized === "türkiye"
+  );
+}
+
+function formatValue(value: number) {
+  const absolute = Math.abs(value);
+
+  if (absolute >= 1_000_000_000_000) {
+    return `${(
+      value / 1_000_000_000_000
+    ).toFixed(2)}T`;
+  }
+
+  if (absolute >= 1_000_000_000) {
+    return `${(
+      value / 1_000_000_000
+    ).toFixed(2)}B`;
+  }
+
+  if (absolute >= 1_000_000) {
+    return `${(
+      value / 1_000_000
+    ).toFixed(2)}M`;
+  }
+
+  if (absolute >= 1_000) {
+    return `${(
+      value / 1_000
+    ).toFixed(2)}K`;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+/* =========================================================
+   COMPONENT
+   ========================================================= */
+
 function Ranking() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
 
-  const [selectedIndicator, setSelectedIndicator] =
-    useState("GDP");
+  const [selectedIndicators, setSelectedIndicators] =
+    useState<string[]>(["GDP"]);
 
   const [selectedYear, setSelectedYear] =
     useState(2024);
 
   const [direction, setDirection] =
-    useState<"top" | "bottom">("top");
+    useState<Direction>("top");
 
   const [limit, setLimit] = useState(10);
 
-  const [data, setData] = useState<
-    { country: string; year: number; value: number }[]
-  >([]);
+  const [regionFilter, setRegionFilter] =
+    useState<RegionFilter>("all");
+
+  const [data, setData] = useState<RankingRow[]>([]);
 
   const [loading, setLoading] = useState(true);
+
   const [rankingLoading, setRankingLoading] =
     useState(false);
+
   const [error, setError] = useState("");
+
+  /* =======================================================
+     LOAD METADATA
+     ======================================================= */
 
   useEffect(() => {
     async function loadMetadata() {
       try {
         setLoading(true);
+        setError("");
 
-        const [countriesResponse, indicatorsResponse] =
-          await Promise.all([
-            fetch(`${API}/countries?limit=500`),
-            fetch(`${API}/indicators?limit=500`),
-          ]);
+        const [
+          countriesResponse,
+          indicatorsResponse,
+        ] = await Promise.all([
+          fetch(`${API}/countries?limit=500`),
+          fetch(`${API}/indicators?limit=500`),
+        ]);
 
         if (!countriesResponse.ok) {
-          throw new Error("Could not load countries.");
+          throw new Error(
+            "Could not load countries."
+          );
         }
 
         if (!indicatorsResponse.ok) {
-          throw new Error("Could not load indicators.");
+          throw new Error(
+            "Could not load indicators."
+          );
         }
 
         const countriesJson =
@@ -81,7 +225,9 @@ function Ranking() {
         const indicatorsJson =
           await indicatorsResponse.json();
 
-        const countryRows = Array.isArray(countriesJson)
+        const countryRows = Array.isArray(
+          countriesJson
+        )
           ? countriesJson
           : countriesJson.results ??
             countriesJson.data ??
@@ -97,6 +243,10 @@ function Ranking() {
         setCountries(countryRows);
         setIndicators(indicatorRows);
 
+        /*
+         * Prefer GDP when available.
+         */
+
         if (
           indicatorRows.length > 0 &&
           !indicatorRows.some(
@@ -104,9 +254,9 @@ function Ranking() {
               item.code === "GDP"
           )
         ) {
-          setSelectedIndicator(
-            indicatorRows[0].code
-          );
+          setSelectedIndicators([
+            indicatorRows[0].code,
+          ]);
         }
       } catch (err) {
         setError(
@@ -122,11 +272,28 @@ function Ranking() {
     loadMetadata();
   }, []);
 
+  /* =======================================================
+     COUNTRIES AVAILABLE FOR CURRENT FILTER
+     ======================================================= */
+
+  const filteredCountries = useMemo(() => {
+    if (regionFilter === "all") {
+      return countries;
+    }
+
+    return countries.filter(isOECDCountry);
+  }, [countries, regionFilter]);
+
+  /* =======================================================
+     LOAD RANKING DATA
+     ======================================================= */
+
   useEffect(() => {
     if (
-      countries.length === 0 ||
-      !selectedIndicator
+      filteredCountries.length === 0 ||
+      selectedIndicators.length === 0
     ) {
+      setData([]);
       return;
     }
 
@@ -135,80 +302,106 @@ function Ranking() {
         setRankingLoading(true);
         setError("");
 
-        const countryNames = countries
-          .map(
-            (country) =>
-              country.name ??
-              country.country_name ??
-              country.code ??
-              country.iso3 ??
-              ""
-          )
-          .filter(Boolean);
+        const countryNames =
+          filteredCountries
+            .map(getCountryName)
+            .filter(Boolean);
 
-        const requests = countryNames.map(
-          async (country) => {
-            try {
-              const response = await fetch(
-                `${API}/data/${encodeURIComponent(
-                  country
-                )}/${encodeURIComponent(
-                  selectedIndicator
-                )}`
+        /*
+         * Load every country × indicator combination
+         * in parallel.
+         */
+
+        const countryResults =
+          await Promise.all(
+            countryNames.map(async (country) => {
+              const values: Record<
+                string,
+                number
+              > = {};
+
+              await Promise.all(
+                selectedIndicators.map(
+                  async (indicatorCode) => {
+                    try {
+                      const response =
+                        await fetch(
+                          `${API}/data/${encodeURIComponent(
+                            country
+                          )}/${encodeURIComponent(
+                            indicatorCode
+                          )}`
+                        );
+
+                      if (!response.ok) {
+                        return;
+                      }
+
+                      const json =
+                        await response.json();
+
+                      const rows =
+                        Array.isArray(json)
+                          ? json
+                          : json.results ??
+                            json.data ??
+                            [];
+
+                      const row = rows.find(
+                        (item: any) =>
+                          Number(item.year) ===
+                          selectedYear
+                      );
+
+                      if (!row) {
+                        return;
+                      }
+
+                      const value = Number(
+                        row.value
+                      );
+
+                      if (
+                        Number.isFinite(value)
+                      ) {
+                        values[indicatorCode] =
+                          value;
+                      }
+                    } catch {
+                      /*
+                       * One missing country/indicator
+                       * should not break the entire chart.
+                       */
+                    }
+                  }
+                )
               );
 
-              if (!response.ok) {
-                return null;
-              }
+              /*
+               * A country must have at least one
+               * valid selected indicator.
+               */
 
-              const json =
-                await response.json();
-
-              const rows = Array.isArray(json)
-                ? json
-                : json.results ??
-                  json.data ??
-                  [];
-
-              const row = rows.find(
-                (item: any) =>
-                  Number(item.year) ===
-                  selectedYear
-              );
-
-              if (!row) {
-                return null;
-              }
-
-              const value = Number(row.value);
-
-              if (!Number.isFinite(value)) {
+              if (
+                Object.keys(values).length === 0
+              ) {
                 return null;
               }
 
               return {
                 country,
                 year: selectedYear,
-                value,
+                values,
               };
-            } catch {
-              return null;
-            }
-          }
-        );
-
-        const results =
-          await Promise.all(requests);
+            })
+          );
 
         setData(
-          results.filter(
+          countryResults.filter(
             (
               row
-            ): row is {
-              country: string;
-              year: number;
-              value: number;
-            } => row !== null
+            ): row is RankingRow =>
+              row !== null
           )
         );
       } catch (err) {
@@ -217,6 +410,7 @@ function Ranking() {
             ? err.message
             : "Could not load ranking data."
         );
+
         setData([]);
       } finally {
         setRankingLoading(false);
@@ -225,95 +419,183 @@ function Ranking() {
 
     loadRankingData();
   }, [
-    countries,
-    selectedIndicator,
+    filteredCountries,
+    selectedIndicators,
     selectedYear,
   ]);
 
+  /* =======================================================
+     RANKING VALUE
+     ======================================================= */
+
+  const primaryIndicator =
+    selectedIndicators[0];
+
   const sortedData = useMemo(() => {
-    const sorted = [...data].sort((a, b) =>
-      direction === "top"
-        ? b.value - a.value
-        : a.value - b.value
+    const sorted = [...data].sort(
+      (a, b) => {
+        const aValue =
+          a.values[primaryIndicator];
+
+        const bValue =
+          b.values[primaryIndicator];
+
+        if (
+          aValue === undefined &&
+          bValue === undefined
+        ) {
+          return 0;
+        }
+
+        if (aValue === undefined) {
+          return 1;
+        }
+
+        if (bValue === undefined) {
+          return -1;
+        }
+
+        return direction === "top"
+          ? bValue - aValue
+          : aValue - bValue;
+      }
     );
 
     return sorted.map((row, index) => ({
       ...row,
       rank: index + 1,
     }));
-  }, [data, direction]);
+  }, [
+    data,
+    direction,
+    primaryIndicator,
+  ]);
+
+  /* =======================================================
+     VISIBLE DATA
+     ======================================================= */
 
   const visibleData = useMemo(
-    () => sortedData.slice(0, limit),
+    () =>
+      sortedData.slice(
+        0,
+        Math.min(limit, sortedData.length)
+      ),
     [sortedData, limit]
   );
 
+  /* =======================================================
+     INDICATOR INFORMATION
+     ======================================================= */
+
   const selectedIndicatorInfo =
-    indicators.find(
-      (item) =>
-        item.code === selectedIndicator
+    selectedIndicators.map(
+      (code) =>
+        indicators.find(
+          (item) => item.code === code
+        )
     );
 
+  /* =======================================================
+     ITALY
+     ======================================================= */
+
   const italy = sortedData.find(
-    (row) => row.country === "Italy"
+    (row) =>
+      row.country.toLowerCase() ===
+      "italy"
   );
 
   const italyRank = italy?.rank ?? null;
 
+  /* =======================================================
+     CHART DATA
+     ======================================================= */
+
   const chartData = visibleData.map((row) => ({
     country: row.country,
-    value: row.value,
+    ...row.values,
   }));
 
-  function formatValue(value: number) {
-    const absolute = Math.abs(value);
+  /* =======================================================
+     AVAILABLE INDICATORS FOR ADD BUTTON
+     ======================================================= */
 
-    if (absolute >= 1_000_000_000_000) {
-      return `${(
-        value / 1_000_000_000_000
-      ).toFixed(2)}T`;
+  const availableIndicators = indicators.filter(
+    (indicator) =>
+      !selectedIndicators.includes(
+        indicator.code
+      )
+  );
+
+  /* =======================================================
+     ADD INDICATOR
+     ======================================================= */
+
+  function addIndicator(code: string) {
+    if (!code) {
+      return;
     }
 
-    if (absolute >= 1_000_000_000) {
-      return `${(
-        value / 1_000_000_000
-      ).toFixed(2)}B`;
+    if (
+      selectedIndicators.includes(code)
+    ) {
+      return;
     }
 
-    if (absolute >= 1_000_000) {
-      return `${(
-        value / 1_000_000
-      ).toFixed(2)}M`;
-    }
-
-    if (absolute >= 1_000) {
-      return `${(
-        value / 1_000
-      ).toFixed(2)}K`;
-    }
-
-    return new Intl.NumberFormat(
-      "en-US",
-      {
-        maximumFractionDigits: 2,
-      }
-    ).format(value);
+    setSelectedIndicators([
+      ...selectedIndicators,
+      code,
+    ]);
   }
+
+  /* =======================================================
+     REMOVE INDICATOR
+     ======================================================= */
+
+  function removeIndicator(code: string) {
+    if (selectedIndicators.length <= 1) {
+      return;
+    }
+
+    setSelectedIndicators(
+      selectedIndicators.filter(
+        (item) => item !== code
+      )
+    );
+  }
+
+  /* =======================================================
+     LOADING
+     ======================================================= */
 
   if (loading) {
     return (
       <section className="ranking-page">
         <div className="ranking-loading">
-          <Loader2 className="spin" size={18} />
+          <Loader2
+            className="spin"
+            size={18}
+          />
           Loading WorldData...
         </div>
       </section>
     );
   }
 
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
   return (
     <section className="ranking-page">
+
+      {/* ===================================================
+          HEADER
+          =================================================== */}
+
       <div className="ranking-heading">
+
         <div>
           <div className="eyebrow">
             WORLD DATA · COMPARISON
@@ -322,8 +604,8 @@ function Ranking() {
           <h1>Ranking</h1>
 
           <p>
-            Compare countries by indicator and
-            see where each country stands.
+            Compare countries by indicator,
+            year and economic group.
           </p>
         </div>
 
@@ -336,46 +618,154 @@ function Ranking() {
             </strong>
 
             <small>
-              of {sortedData.length} countries
+              of {sortedData.length}{" "}
+              countries
             </small>
           </div>
         )}
+
       </div>
+
+      {/* ===================================================
+          ERROR
+          =================================================== */}
 
       {error && (
         <div className="ranking-error">
-          <strong>Unable to load data</strong>
+          <strong>
+            Unable to load data
+          </strong>
+
           <span>{error}</span>
         </div>
       )}
 
-      <div className="ranking-controls">
-        <div className="ranking-control ranking-indicator">
-          <label>INDICATOR</label>
+      {/* ===================================================
+          CONTROLS
+          =================================================== */}
 
-          <select
-            value={selectedIndicator}
-            onChange={(event) =>
-              setSelectedIndicator(
-                event.target.value
-              )
-            }
-          >
-            {indicators.map((indicator) => (
-              <option
-                key={indicator.code}
-                value={indicator.code}
+      <div className="ranking-controls">
+
+        {/* -------------------------------------------------
+            INDICATORS
+            ------------------------------------------------- */}
+
+        <div className="ranking-control ranking-indicators">
+
+          <label>INDICATORS</label>
+
+          <div className="ranking-indicator-list">
+
+            {selectedIndicators.map(
+              (code, index) => {
+                const info =
+                  indicators.find(
+                    (item) =>
+                      item.code === code
+                  );
+
+                return (
+                  <div
+                    className="ranking-indicator-chip"
+                    key={code}
+                  >
+                    <select
+                      value={code}
+                      onChange={(event) => {
+                        const newCode =
+                          event.target.value;
+
+                        setSelectedIndicators(
+                          selectedIndicators.map(
+                            (
+                              existing,
+                              existingIndex
+                            ) =>
+                              existingIndex ===
+                              index
+                                ? newCode
+                                : existing
+                          )
+                        );
+                      }}
+                    >
+                      {indicators.map(
+                        (indicator) => (
+                          <option
+                            key={
+                              indicator.code
+                            }
+                            value={
+                              indicator.code
+                            }
+                            disabled={
+                              selectedIndicators.includes(
+                                indicator.code
+                              ) &&
+                              indicator.code !==
+                                code
+                            }
+                          >
+                            {indicator.code}
+                            {indicator.name
+                              ? ` — ${indicator.name}`
+                              : ""}
+                          </option>
+                        )
+                      )}
+                    </select>
+
+                    {selectedIndicators.length >
+                      1 && (
+                      <button
+                        type="button"
+                        className="ranking-remove-indicator"
+                        onClick={() =>
+                          removeIndicator(
+                            code
+                          )
+                        }
+                        aria-label={`Remove ${code}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+
+                    {info?.unit && (
+                      <span className="ranking-unit">
+                        {info.unit}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
+            )}
+
+            {availableIndicators.length >
+              0 && (
+              <button
+                type="button"
+                className="ranking-add-indicator"
+                onClick={() =>
+                  addIndicator(
+                    availableIndicators[0]
+                      .code
+                  )
+                }
               >
-                {indicator.code}
-                {indicator.name
-                  ? ` — ${indicator.name}`
-                  : ""}
-              </option>
-            ))}
-          </select>
+                <Plus size={13} />
+                Add indicator
+              </button>
+            )}
+
+          </div>
         </div>
 
-        <div className="ranking-control">
+        {/* -------------------------------------------------
+            YEAR
+            ------------------------------------------------- */}
+
+        <div className="ranking-control ranking-year">
           <label>YEAR</label>
 
           <select
@@ -401,10 +791,55 @@ function Ranking() {
           </select>
         </div>
 
-        <div className="ranking-control">
+        {/* -------------------------------------------------
+            UNIVERSE
+            ------------------------------------------------- */}
+
+        <div className="ranking-control ranking-universe">
+          <label>COUNTRIES</label>
+
+          <div className="ranking-toggle">
+
+            <button
+              type="button"
+              className={
+                regionFilter === "all"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setRegionFilter("all")
+              }
+            >
+              All
+            </button>
+
+            <button
+              type="button"
+              className={
+                regionFilter === "oecd"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setRegionFilter("oecd")
+              }
+            >
+              OECD
+            </button>
+
+          </div>
+        </div>
+
+        {/* -------------------------------------------------
+            ORDER
+            ------------------------------------------------- */}
+
+        <div className="ranking-control ranking-order">
           <label>ORDER</label>
 
           <div className="ranking-toggle">
+
             <button
               type="button"
               className={
@@ -434,8 +869,13 @@ function Ranking() {
               <ArrowDown size={13} />
               Lowest
             </button>
+
           </div>
         </div>
+
+        {/* -------------------------------------------------
+            SHOW
+            ------------------------------------------------- */}
 
         <div className="ranking-control ranking-limit">
           <label>SHOW</label>
@@ -448,41 +888,81 @@ function Ranking() {
               )
             }
           >
-            <option value={5}>Top 5</option>
-            <option value={10}>Top 10</option>
-            <option value={15}>Top 15</option>
-            <option value={20}>Top 20</option>
-            <option value={30}>Top 30</option>
+            <option value={5}>
+              Top 5
+            </option>
+
+            <option value={10}>
+              Top 10
+            </option>
+
+            <option value={20}>
+              Top 20
+            </option>
+
+            <option value={30}>
+              Top 30
+            </option>
+
+            <option value={50}>
+              Top 50
+            </option>
           </select>
         </div>
+
       </div>
 
+      {/* ===================================================
+          CHART CARD
+          =================================================== */}
+
       <div className="ranking-card">
+
         <div className="ranking-card-header">
+
           <div>
             <div className="eyebrow">
               {direction === "top"
                 ? "HIGHEST"
-                : "LOWEST"}
+                : "LOWEST"}{" "}
+              ·{" "}
+              {regionFilter === "oecd"
+                ? "OECD"
+                : "ALL COUNTRIES"}
             </div>
 
             <h2>
-              {selectedIndicator}
+              {selectedIndicators.join(
+                " + "
+              )}
             </h2>
 
             <p>
-              {selectedIndicatorInfo?.name ??
-                "Country ranking"}{" "}
+              {selectedIndicatorInfo
+                .map(
+                  (item) =>
+                    item?.name ??
+                    item?.code
+                )
+                .filter(Boolean)
+                .join(" · ")}{" "}
               · {selectedYear}
             </p>
           </div>
 
           <span className="ranking-count">
-            {visibleData.length} countries
+            {visibleData.length} of{" "}
+            {sortedData.length} countries
           </span>
+
         </div>
 
+        {/* =================================================
+            CHART
+            ================================================= */}
+
         <div className="ranking-chart">
+
           {rankingLoading ? (
             <div className="ranking-loading">
               <Loader2
@@ -493,61 +973,96 @@ function Ranking() {
             </div>
           ) : chartData.length === 0 ? (
             <div className="ranking-empty">
-              <h3>No data available</h3>
+              <h3>
+                No data available
+              </h3>
+
               <p>
-                There are no observations for
-                this indicator and year.
+                There are no observations
+                for the selected indicators
+                and year.
               </p>
             </div>
           ) : (
             <ResponsiveContainer
               width="100%"
-              height={Math.max(
-                420,
-                visibleData.length * 38
-              )}
+              height={
+                limit >= 50
+                  ? 650
+                  : limit >= 30
+                  ? 570
+                  : 470
+              }
             >
               <BarChart
                 data={chartData}
-                layout="vertical"
                 margin={{
-                  top: 10,
-                  right: 40,
-                  left: 110,
-                  bottom: 10,
+                  top: 20,
+                  right: 25,
+                  left: 15,
+                  bottom:
+                    limit >= 30
+                      ? 105
+                      : 75,
                 }}
               >
+
                 <CartesianGrid
-                  horizontal={false}
+                  vertical={false}
                   stroke="#e8ecf1"
                 />
 
                 <XAxis
-                  type="number"
+                  dataKey="country"
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
+                  angle={
+                    limit >= 20
+                      ? -55
+                      : -35
+                  }
+                  textAnchor="end"
+                  height={
+                    limit >= 20
+                      ? 105
+                      : 80
+                  }
+                  tick={{
+                    fontSize:
+                      limit >= 30
+                        ? 9
+                        : 10,
+                    fill: "#334155",
+                  }}
+                />
+
+                <YAxis
                   tickLine={false}
                   axisLine={false}
                   tick={{
                     fontSize: 10,
                     fill: "#64748b",
                   }}
-                  tickFormatter={formatValue}
-                />
-
-                <YAxis
-                  type="category"
-                  dataKey="country"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{
-                    fontSize: 11,
-                    fill: "#334155",
-                  }}
-                  width={105}
+                  tickFormatter={
+                    formatValue
+                  }
                 />
 
                 <Tooltip
-                  formatter={(value) =>
-                    formatValue(Number(value))
+                  formatter={(
+                    value,
+                    name
+                  ) => [
+                    formatValue(
+                      Number(value)
+                    ),
+                    String(name),
+                  ]}
+                  labelFormatter={(
+                    label
+                  ) =>
+                    String(label)
                   }
                   contentStyle={{
                     borderRadius: 10,
@@ -559,71 +1074,177 @@ function Ranking() {
                   }}
                 />
 
-                <Bar
-                  dataKey="value"
-                  name={
-                    selectedIndicator
-                  }
-                  radius={[
-                    0,
-                    5,
-                    5,
-                    0,
-                  ]}
-                  barSize={19}
-                >
-                  {chartData.map(
-                    (row) => (
-                      <Cell
-                        key={row.country}
-                        fill={
-                          row.country ===
-                          "Italy"
-                            ? "#dc2626"
-                            : "#2563eb"
-                        }
-                      />
-                    )
-                  )}
-                </Bar>
+                {selectedIndicators.map(
+                  (
+                    indicatorCode,
+                    indicatorIndex
+                  ) => (
+                    <Bar
+                      key={indicatorCode}
+                      dataKey={
+                        indicatorCode
+                      }
+                      name={
+                        indicatorCode
+                      }
+                      stackId="ranking"
+                      radius={
+                        indicatorIndex ===
+                        selectedIndicators.length -
+                          1
+                          ? [5, 5, 0, 0]
+                          : [0, 0, 0, 0]
+                      }
+                      barSize={
+                        limit >= 50
+                          ? 14
+                          : limit >= 30
+                          ? 17
+                          : 22
+                      }
+                    >
+                      {chartData.map(
+                        (row) => (
+                          <Cell
+                            key={`${row.country}-${indicatorCode}`}
+                            fill={
+                              row.country ===
+                              "Italy"
+                                ? indicatorIndex ===
+                                  0
+                                  ? "#dc2626"
+                                  : "#f87171"
+                                : undefined
+                            }
+                          />
+                        )
+                      )}
+                    </Bar>
+                  )
+                )}
+
               </BarChart>
             </ResponsiveContainer>
           )}
+
         </div>
+
+        {/* =================================================
+            LEGEND
+            ================================================= */}
+
+        {!rankingLoading &&
+          selectedIndicators.length >
+            1 &&
+          chartData.length > 0 && (
+            <div className="ranking-legend">
+
+              {selectedIndicators.map(
+                (code) => {
+                  const info =
+                    indicators.find(
+                      (item) =>
+                        item.code === code
+                    );
+
+                  return (
+                    <div
+                      className="ranking-legend-item"
+                      key={code}
+                    >
+                      <span className="ranking-legend-dot" />
+
+                      <strong>
+                        {code}
+                      </strong>
+
+                      {info?.name && (
+                        <span>
+                          {info.name}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+              )}
+
+            </div>
+          )}
+
+        {/* =================================================
+            TABLE
+            ================================================= */}
 
         {!rankingLoading &&
           visibleData.length > 0 && (
             <div className="ranking-table">
+
               <div className="ranking-table-head">
+
                 <span>#</span>
-                <span>Country</span>
-                <span>Value</span>
+
+                <span>
+                  Country
+                </span>
+
+                {selectedIndicators.map(
+                  (code) => (
+                    <span
+                      key={code}
+                    >
+                      {code}
+                    </span>
+                  )
+                )}
+
               </div>
 
-              {visibleData.map((row) => (
-                <div
-                  className={
-                    row.country === "Italy"
-                      ? "ranking-row italy"
-                      : "ranking-row"
-                  }
-                  key={row.country}
-                >
-                  <strong>{row.rank}</strong>
+              {visibleData.map(
+                (row) => (
+                  <div
+                    className={
+                      row.country ===
+                      "Italy"
+                        ? "ranking-row italy"
+                        : "ranking-row"
+                    }
+                    key={row.country}
+                  >
 
-                  <span>
-                    {row.country}
-                  </span>
+                    <strong>
+                      {row.rank}
+                    </strong>
 
-                  <span>
-                    {formatValue(
-                      row.value
+                    <span>
+                      {row.country}
+                    </span>
+
+                    {selectedIndicators.map(
+                      (code) => (
+                        <span
+                          key={`${row.country}-${code}`}
+                        >
+                          {row.values[
+                            code
+                          ] !==
+                          undefined
+                            ? formatValue(
+                                row.values[
+                                  code
+                                ]
+                              )
+                            : "—"}
+                        </span>
+                      )
                     )}
-                  </span>
-                </div>
-              ))}
+
+                  </div>
+                )
+              )}
+
             </div>
           )}
+
       </div>
     </section>
   );
