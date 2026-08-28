@@ -170,6 +170,10 @@ function Ranking() {
 
   const chartRef = useRef<HTMLDivElement | null>(null);
 
+  // =========================================================
+  // LOAD METADATA
+  // =========================================================
+
   useEffect(() => {
     async function loadMetadata() {
       try {
@@ -239,6 +243,10 @@ function Ranking() {
     loadMetadata();
   }, []);
 
+  // =========================================================
+  // CLOSE DROPDOWNS WHEN CLICKING OUTSIDE
+  // =========================================================
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
@@ -271,6 +279,10 @@ function Ranking() {
     };
   }, []);
 
+  // =========================================================
+  // OECD
+  // =========================================================
+
   const oecdCountries = useMemo(() => {
     return new Set(
       countries
@@ -291,6 +303,10 @@ function Ranking() {
 
     return OECD_FALLBACK.has(countryName);
   }
+
+  // =========================================================
+  // LOAD RANKING DATA
+  // =========================================================
 
   useEffect(() => {
     if (
@@ -426,6 +442,10 @@ function Ranking() {
     selectedYear,
   ]);
 
+  // =========================================================
+  // FILTER
+  // =========================================================
+
   const filteredData = useMemo(() => {
     if (!oecdOnly) {
       return data;
@@ -439,6 +459,10 @@ function Ranking() {
     oecdOnly,
     oecdCountries,
   ]);
+
+  // =========================================================
+  // TOTAL + RANK
+  // =========================================================
 
   const sortedData = useMemo(() => {
     const rows: RankingRow[] =
@@ -486,11 +510,19 @@ function Ranking() {
     [sortedData, limit]
   );
 
+  // =========================================================
+  // ITALY
+  // =========================================================
+
   const italy = sortedData.find(
     (row) => row.country === "Italy"
   );
 
   const italyRank = italy?.rank ?? null;
+
+  // =========================================================
+  // INDICATOR SEARCH
+  // =========================================================
 
   const filteredIndicators = useMemo(() => {
     const query =
@@ -513,6 +545,10 @@ function Ranking() {
     indicators,
     indicatorSearch,
   ]);
+
+  // =========================================================
+  // INDICATOR TOGGLE
+  // =========================================================
 
   function toggleIndicator(
     indicatorCode: string
@@ -559,6 +595,10 @@ function Ranking() {
     );
   }
 
+  // =========================================================
+  // CHART DATA
+  // =========================================================
+
   const chartData = useMemo(() => {
     return visibleData.map(
       (row) => {
@@ -588,6 +628,10 @@ function Ranking() {
     selectedIndicators,
   ]);
 
+  // =========================================================
+  // SELECTED INDICATOR INFO
+  // =========================================================
+
   const selectedIndicatorInfo =
     indicators.filter(
       (indicator) =>
@@ -595,6 +639,10 @@ function Ranking() {
           indicator.code
         )
     );
+
+  // =========================================================
+  // FORMAT
+  // =========================================================
 
   function formatValue(value: number) {
     const absolute = Math.abs(value);
@@ -661,14 +709,16 @@ function Ranking() {
         await html2canvas(
           chartRef.current,
           {
-            backgroundColor: "#ffffff",
+            backgroundColor:
+              "#ffffff",
             scale: 2,
-            useCORS: true,
           }
         );
 
       const indicatorTitle =
-        selectedIndicators.join(" + ");
+        selectedIndicators.join(
+          " + "
+        );
 
       const title =
         `${
@@ -704,6 +754,10 @@ function Ranking() {
     }
   }
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+
   if (loading) {
     return (
       <section className="ranking-page">
@@ -717,6 +771,10 @@ function Ranking() {
       </section>
     );
   }
+
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
     <section className="ranking-page">
@@ -760,7 +818,12 @@ function Ranking() {
         </div>
       )}
 
+      {/* =====================================================
+          CONTROLS
+          ===================================================== */}
+
       <div className="ranking-controls">
+        {/* INDICATORS */}
 
         <div
           className="ranking-control ranking-indicator-control"
@@ -1009,6 +1072,8 @@ function Ranking() {
           )}
         </div>
 
+        {/* YEAR */}
+
         <div
           className="ranking-control ranking-year-control"
           ref={yearControlRef}
@@ -1088,6 +1153,8 @@ function Ranking() {
           )}
         </div>
 
+        {/* ORDER */}
+
         <div className="ranking-control ranking-order-control">
           <div className="ranking-control-label">
             <span>ORDER</span>
@@ -1136,6 +1203,8 @@ function Ranking() {
           </div>
         </div>
 
+        {/* SHOW */}
+
         <div className="ranking-control ranking-show-control">
           <div className="ranking-control-label">
             <span>SHOW</span>
@@ -1156,23 +1225,30 @@ function Ranking() {
             <option value={5}>
               Top 5
             </option>
+
             <option value={10}>
               Top 10
             </option>
+
             <option value={15}>
               Top 15
             </option>
+
             <option value={20}>
               Top 20
             </option>
+
             <option value={30}>
               Top 30
             </option>
+
             <option value={50}>
               Top 50
             </option>
           </select>
         </div>
+
+        {/* OECD */}
 
         <div className="ranking-control ranking-group-control">
           <div className="ranking-control-label">
@@ -1206,13 +1282,10 @@ function Ranking() {
       </div>
 
       {/* =====================================================
-          DOWNLOADABLE CHART AREA
+          CARD
           ===================================================== */}
 
-      <div
-        className="ranking-card ranking-download-area"
-        ref={chartRef}
-      >
+      <div className="ranking-card">
         <div className="ranking-card-header">
           <div>
             <div className="eyebrow">
@@ -1255,21 +1328,32 @@ function Ranking() {
             <button
               type="button"
               className="ranking-download"
-              onClick={downloadChart}
+              onClick={
+                downloadChart
+              }
               disabled={
                 rankingLoading ||
-                chartData.length === 0
+                chartData.length ===
+                  0
               }
             >
               <Download
                 size={14}
               />
+
               Download
             </button>
           </div>
         </div>
 
-        <div className="ranking-chart">
+        {/* ===================================================
+            CHART
+            =================================================== */}
+
+        <div
+          className="ranking-chart"
+          ref={chartRef}
+        >
           {rankingLoading ? (
             <div className="ranking-loading">
               <Loader2
@@ -1375,6 +1459,9 @@ function Ranking() {
                       label
                     )
                   }
+                  content={
+                    undefined
+                  }
                 />
 
                 <Legend />
@@ -1425,16 +1512,14 @@ function Ranking() {
             </ResponsiveContainer>
           )}
         </div>
-      </div>
 
-      {/* =====================================================
-          TABLE — NOT PART OF DOWNLOAD
-          ===================================================== */}
+        {/* =====================================================
+            TABLE
+            ===================================================== */}
 
-      {!rankingLoading &&
-        visibleData.length >
-          0 && (
-          <div className="ranking-card ranking-table-card">
+        {!rankingLoading &&
+          visibleData.length >
+            0 && (
             <div className="ranking-table">
               <div
                 className="ranking-table-head"
@@ -1516,8 +1601,8 @@ function Ranking() {
                 )
               )}
             </div>
-          </div>
-        )}
+          )}
+      </div>
     </section>
   );
 }
