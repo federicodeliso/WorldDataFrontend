@@ -51,6 +51,18 @@ type RankingRow = RankingDataRow & {
   rank: number;
 };
 
+type TooltipPayloadItem = {
+  dataKey?: string | number;
+  name?: string | number;
+  value?: string | number;
+};
+
+type RankingTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string | number;
+};
+
 const INDICATOR_COLORS = [
   "#2563eb",
   "#16a34a",
@@ -117,32 +129,162 @@ function getCountryName(country: Country): string {
 }
 
 function getIndicatorValue(
-  row: RankingDataRow | RankingRow | undefined,
+  row: RankingDataRow | RankingRow,
   indicatorCode: string
 ): number {
-  if (!row) {
-    return 0;
-  }
-
   const value = row[indicatorCode];
 
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
   }
 
-  const numericValue = Number(value ?? 0);
+  if (typeof value === "string") {
+    const numericValue = Number(value);
 
-  return Number.isFinite(numericValue) ? numericValue : 0;
+    return Number.isFinite(numericValue)
+      ? numericValue
+      : 0;
+  }
+
+  return 0;
+}
+
+function RankingTooltip({
+  active,
+  payload,
+  label,
+}: RankingTooltipProps) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const total = payload.reduce((sum, item) => {
+    const value = Number(item.value ?? 0);
+
+    return Number.isFinite(value)
+      ? sum + value
+      : sum;
+  }, 0);
+
+  function formatTooltipValue(value: number): string {
+    const absolute = Math.abs(value);
+
+    if (absolute >= 1_000_000_000_000) {
+      return `${(value / 1_000_000_000_000).toFixed(2)}T`;
+    }
+
+    if (absolute >= 1_000_000_000) {
+      return `${(value / 1_000_000_000).toFixed(2)}B`;
+    }
+
+    if (absolute >= 1_000_000) {
+      return `${(value / 1_000_000).toFixed(2)}M`;
+    }
+
+    if (absolute >= 1_000) {
+      return `${(value / 1_000).toFixed(2)}K`;
+    }
+
+    return new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  return (
+    <div
+      style={{
+        minWidth: 190,
+        padding: "11px 13px",
+        border: "1px solid #e2e8f0",
+        borderRadius: 10,
+        background: "#ffffff",
+        boxShadow:
+          "0 10px 30px rgba(15,23,42,0.12)",
+        fontSize: 12,
+      }}
+    >
+      <div
+        style={{
+          marginBottom: 8,
+          color: "#0f172a",
+          fontWeight: 700,
+        }}
+      >
+        {String(label)}
+      </div>
+
+      {payload.map((item, index) => {
+        const value = Number(item.value ?? 0);
+
+        return (
+          <div
+            key={`${String(item.dataKey)}-${index}`}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 20,
+              marginBottom: 5,
+              color: "#475569",
+            }}
+          >
+            <span>
+              {String(item.name ?? item.dataKey)}
+            </span>
+
+            <strong
+              style={{
+                color: "#0f172a",
+                fontVariantNumeric:
+                  "tabular-nums",
+              }}
+            >
+              {formatTooltipValue(value)}
+            </strong>
+          </div>
+        );
+      })}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 20,
+          marginTop: 9,
+          paddingTop: 8,
+          borderTop: "1px solid #e2e8f0",
+          color: "#0f172a",
+        }}
+      >
+        <strong>Total</strong>
+
+        <strong
+          style={{
+            color: "#2563eb",
+            fontVariantNumeric:
+              "tabular-nums",
+          }}
+        >
+          {formatTooltipValue(total)}
+        </strong>
+      </div>
+    </div>
+  );
 }
 
 function Ranking() {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [indicators, setIndicators] = useState<Indicator[]>([]);
+  const [countries, setCountries] = useState<Country[]>(
+    []
+  );
+
+  const [indicators, setIndicators] = useState<
+    Indicator[]
+  >([]);
 
   const [selectedIndicators, setSelectedIndicators] =
     useState<string[]>(["GDP"]);
 
-  const [selectedYear, setSelectedYear] = useState(2024);
+  const [selectedYear, setSelectedYear] =
+    useState(2024);
 
   const [direction, setDirection] =
     useState<"top" | "bottom">("top");
@@ -151,14 +293,22 @@ function Ranking() {
 
   const [oecdOnly, setOecdOnly] = useState(false);
 
-  const [data, setData] = useState<RankingDataRow[]>([]);
+  const [data, setData] = useState<RankingDataRow[]>(
+    []
+  );
 
   const [loading, setLoading] = useState(true);
-  const [rankingLoading, setRankingLoading] = useState(false);
+
+  const [rankingLoading, setRankingLoading] =
+    useState(false);
+
   const [error, setError] = useState("");
 
-  const [indicatorOpen, setIndicatorOpen] = useState(false);
-  const [indicatorSearch, setIndicatorSearch] = useState("");
+  const [indicatorOpen, setIndicatorOpen] =
+    useState(false);
+
+  const [indicatorSearch, setIndicatorSearch] =
+    useState("");
 
   const [yearOpen, setYearOpen] = useState(false);
 
@@ -168,7 +318,8 @@ function Ranking() {
   const yearControlRef =
     useRef<HTMLDivElement | null>(null);
 
-  const chartRef = useRef<HTMLDivElement | null>(null);
+  const chartRef =
+    useRef<HTMLDivElement | null>(null);
 
   // =========================================================
   // LOAD METADATA
@@ -189,11 +340,15 @@ function Ranking() {
         ]);
 
         if (!countriesResponse.ok) {
-          throw new Error("Could not load countries.");
+          throw new Error(
+            "Could not load countries."
+          );
         }
 
         if (!indicatorsResponse.ok) {
-          throw new Error("Could not load indicators.");
+          throw new Error(
+            "Could not load indicators."
+          );
         }
 
         const countriesJson =
@@ -244,23 +399,29 @@ function Ranking() {
   }, []);
 
   // =========================================================
-  // CLOSE DROPDOWNS WHEN CLICKING OUTSIDE
+  // CLOSE DROPDOWNS
   // =========================================================
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(
+      event: MouseEvent
+    ) {
       const target = event.target as Node;
 
       if (
         indicatorControlRef.current &&
-        !indicatorControlRef.current.contains(target)
+        !indicatorControlRef.current.contains(
+          target
+        )
       ) {
         setIndicatorOpen(false);
       }
 
       if (
         yearControlRef.current &&
-        !yearControlRef.current.contains(target)
+        !yearControlRef.current.contains(
+          target
+        )
       ) {
         setYearOpen(false);
       }
@@ -296,7 +457,9 @@ function Ranking() {
     );
   }, [countries]);
 
-  function isOecdCountry(countryName: string) {
+  function isOecdCountry(
+    countryName: string
+  ): boolean {
     if (oecdCountries.size > 0) {
       return oecdCountries.has(countryName);
     }
@@ -332,13 +495,14 @@ function Ranking() {
                 await Promise.all(
                   selectedIndicators.map(
                     async (indicatorCode) => {
-                      const response = await fetch(
-                        `${API}/data/${encodeURIComponent(
-                          country
-                        )}/${encodeURIComponent(
-                          indicatorCode
-                        )}`
-                      );
+                      const response =
+                        await fetch(
+                          `${API}/data/${encodeURIComponent(
+                            country
+                          )}/${encodeURIComponent(
+                            indicatorCode
+                          )}`
+                        );
 
                       if (!response.ok) {
                         return null;
@@ -347,15 +511,21 @@ function Ranking() {
                       const json =
                         await response.json();
 
-                      const rows = Array.isArray(json)
-                        ? json
-                        : json.results ??
-                          json.data ??
-                          [];
+                      const rows =
+                        Array.isArray(json)
+                          ? json
+                          : json.results ??
+                            json.data ??
+                            [];
 
                       const row = rows.find(
-                        (item: any) =>
-                          Number(item.year) ===
+                        (item: {
+                          year?: number | string;
+                          value?: number | string;
+                        }) =>
+                          Number(
+                            item.year
+                          ) ===
                           selectedYear
                       );
 
@@ -363,9 +533,15 @@ function Ranking() {
                         return null;
                       }
 
-                      const value = Number(row.value);
+                      const value = Number(
+                        row.value
+                      );
 
-                      if (!Number.isFinite(value)) {
+                      if (
+                        !Number.isFinite(
+                          value
+                        )
+                      ) {
                         return null;
                       }
 
@@ -387,7 +563,9 @@ function Ranking() {
                   } => item !== null
                 );
 
-              if (validResults.length === 0) {
+              if (
+                validResults.length === 0
+              ) {
                 return null;
               }
 
@@ -401,7 +579,9 @@ function Ranking() {
                   indicatorCode,
                   value,
                 }) => {
-                  result[indicatorCode] = value;
+                  result[
+                    indicatorCode
+                  ] = value;
                 }
               );
 
@@ -412,7 +592,8 @@ function Ranking() {
           }
         );
 
-        const results = await Promise.all(requests);
+        const results =
+          await Promise.all(requests);
 
         setData(
           results.filter(
@@ -469,12 +650,18 @@ function Ranking() {
       filteredData.map((row) => {
         const total =
           selectedIndicators.reduce(
-            (sum, indicatorCode) =>
-              sum +
-              getIndicatorValue(
-                row,
-                indicatorCode
-              ),
+            (
+              sum: number,
+              indicatorCode: string
+            ) => {
+              return (
+                sum +
+                getIndicatorValue(
+                  row,
+                  indicatorCode
+                )
+              );
+            },
             0
           );
 
@@ -518,7 +705,8 @@ function Ranking() {
     (row) => row.country === "Italy"
   );
 
-  const italyRank = italy?.rank ?? null;
+  const italyRank =
+    italy?.rank ?? null;
 
   // =========================================================
   // INDICATOR SEARCH
@@ -644,7 +832,9 @@ function Ranking() {
   // FORMAT
   // =========================================================
 
-  function formatValue(value: number) {
+  function formatValue(
+    value: number
+  ): string {
     const absolute = Math.abs(value);
 
     if (
@@ -705,19 +895,13 @@ function Ranking() {
     }
 
     try {
-      const canvas =
+      const chartCanvas =
         await html2canvas(
           chartRef.current,
           {
-            backgroundColor:
-              "#ffffff",
+            backgroundColor: "#ffffff",
             scale: 2,
           }
-        );
-
-      const indicatorTitle =
-        selectedIndicators.join(
-          " + "
         );
 
       const title =
@@ -725,7 +909,121 @@ function Ranking() {
           direction === "top"
             ? "Highest"
             : "Lowest"
-        } ${indicatorTitle} — ${selectedYear}`;
+        } ${selectedIndicators.join(
+          " + "
+        )} — ${selectedYear}`;
+
+      const subtitle =
+        selectedIndicatorInfo
+          .map(
+            (indicator) =>
+              indicator.name ??
+              indicator.code
+          )
+          .join(" + ") +
+        (oecdOnly ? " · OECD" : "");
+
+      const padding = 50;
+      const titleHeight = 110;
+
+      const finalCanvas =
+        document.createElement(
+          "canvas"
+        );
+
+      finalCanvas.width =
+        chartCanvas.width +
+        padding * 2;
+
+      finalCanvas.height =
+        chartCanvas.height +
+        titleHeight +
+        padding * 2;
+
+      const context =
+        finalCanvas.getContext(
+          "2d"
+        );
+
+      if (!context) {
+        throw new Error(
+          "Could not create download canvas."
+        );
+      }
+
+      context.fillStyle =
+        "#ffffff";
+
+      context.fillRect(
+        0,
+        0,
+        finalCanvas.width,
+        finalCanvas.height
+      );
+
+      const scale =
+        finalCanvas.width /
+        chartCanvas.width;
+
+      context.save();
+
+      context.translate(
+        padding,
+        padding
+      );
+
+      context.scale(
+        scale,
+        scale
+      );
+
+      context.fillStyle =
+        "#64748b";
+
+      context.font =
+        "700 18px Arial";
+
+      context.fillText(
+        direction === "top"
+          ? "HIGHEST"
+          : "LOWEST",
+        0,
+        20
+      );
+
+      context.fillStyle =
+        "#0f172a";
+
+      context.font =
+        "700 30px Arial";
+
+      context.fillText(
+        title,
+        0,
+        55
+      );
+
+      context.fillStyle =
+        "#64748b";
+
+      context.font =
+        "14px Arial";
+
+      context.fillText(
+        subtitle,
+        0,
+        82
+      );
+
+      context.restore();
+
+      context.drawImage(
+        chartCanvas,
+        padding,
+        titleHeight + padding,
+        chartCanvas.width,
+        chartCanvas.height
+      );
 
       const link =
         document.createElement("a");
@@ -742,7 +1040,7 @@ function Ranking() {
           )}.png`;
 
       link.href =
-        canvas.toDataURL(
+        finalCanvas.toDataURL(
           "image/png"
         );
 
@@ -778,6 +1076,8 @@ function Ranking() {
 
   return (
     <section className="ranking-page">
+      {/* HEADER */}
+
       <div className="ranking-heading">
         <div>
           <div className="eyebrow">
@@ -787,9 +1087,9 @@ function Ranking() {
           <h1>Ranking</h1>
 
           <p>
-            Compare countries by one or more
-            indicators and see where each country
-            stands.
+            Compare countries by one or
+            more indicators and see where
+            each country stands.
           </p>
         </div>
 
@@ -802,11 +1102,14 @@ function Ranking() {
             </strong>
 
             <small>
-              of {sortedData.length} countries
+              of {sortedData.length}{" "}
+              countries
             </small>
           </div>
         )}
       </div>
+
+      {/* ERROR */}
 
       {error && (
         <div className="ranking-error">
@@ -818,9 +1121,7 @@ function Ranking() {
         </div>
       )}
 
-      {/* =====================================================
-          CONTROLS
-          ===================================================== */}
+      {/* CONTROLS */}
 
       <div className="ranking-controls">
         {/* INDICATORS */}
@@ -832,7 +1133,8 @@ function Ranking() {
           <div className="ranking-control-label">
             <span>INDICATORS</span>
 
-            {selectedIndicators.length > 1 && (
+            {selectedIndicators.length >
+              1 && (
               <button
                 type="button"
                 onClick={() =>
@@ -857,90 +1159,83 @@ function Ranking() {
           >
             <div className="ranking-selection-content">
               <div className="ranking-selected-tags">
-                {selectedIndicators.length ===
-                0 ? (
-                  <span className="ranking-placeholder">
-                    Select indicators
-                  </span>
-                ) : (
-                  <>
-                    {selectedIndicators
-                      .slice(0, 3)
-                      .map(
-                        (
+                {selectedIndicators
+                  .slice(0, 3)
+                  .map(
+                    (
+                      indicatorCode
+                    ) => (
+                      <span
+                        className="ranking-selection-tag"
+                        key={
                           indicatorCode
-                        ) => (
-                          <span
-                            className="ranking-selection-tag"
-                            key={
-                              indicatorCode
-                            }
-                          >
-                            <span
-                              className="ranking-tag-dot"
-                              style={{
-                                background:
-                                  INDICATOR_COLORS[
-                                    Math.max(
-                                      0,
-                                      selectedIndicators.indexOf(
-                                        indicatorCode
-                                      )
-                                    ) %
-                                      INDICATOR_COLORS.length
-                                  ],
-                              }}
-                            />
-
-                            <span>
-                              {
-                                indicatorCode
-                              }
-                            </span>
-
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              className="ranking-tag-remove"
-                              onClick={(
-                                event
-                              ) => {
-                                event.stopPropagation();
-                                removeIndicator(
-                                  indicatorCode
-                                );
-                              }}
-                              onKeyDown={(
-                                event
-                              ) => {
-                                if (
-                                  event.key ===
-                                  "Enter"
-                                ) {
-                                  event.stopPropagation();
-                                  removeIndicator(
+                        }
+                      >
+                        <span
+                          className="ranking-tag-dot"
+                          style={{
+                            background:
+                              INDICATOR_COLORS[
+                                Math.max(
+                                  0,
+                                  selectedIndicators.indexOf(
                                     indicatorCode
-                                  );
-                                }
-                              }}
-                            >
-                              <X
-                                size={11}
-                              />
-                            </span>
-                          </span>
-                        )
-                      )}
+                                  )
+                                ) %
+                                  INDICATOR_COLORS.length
+                              ],
+                          }}
+                        />
 
-                    {selectedIndicators.length >
-                      3 && (
-                      <span className="ranking-selection-more">
-                        +
-                        {selectedIndicators.length -
-                          3}
+                        <span>
+                          {
+                            indicatorCode
+                          }
+                        </span>
+
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="ranking-tag-remove"
+                          onClick={(
+                            event
+                          ) => {
+                            event.stopPropagation();
+
+                            removeIndicator(
+                              indicatorCode
+                            );
+                          }}
+                          onKeyDown={(
+                            event
+                          ) => {
+                            if (
+                              event.key ===
+                              "Enter"
+                            ) {
+                              event.stopPropagation();
+
+                              removeIndicator(
+                                indicatorCode
+                              );
+                            }
+                          }}
+                        >
+                          <X
+                            size={11}
+                          />
+                        </span>
                       </span>
-                    )}
-                  </>
+                    )
+                  )}
+
+                {selectedIndicators.length >
+                  3 && (
+                  <span className="ranking-selection-more">
+                    +
+                    {selectedIndicators.length -
+                      3}
+                  </span>
                 )}
               </div>
             </div>
@@ -1110,10 +1405,13 @@ function Ranking() {
           {yearOpen && (
             <div className="ranking-year-panel">
               <div className="ranking-year-panel-title">
-                <span>SELECT YEAR</span>
+                <span>
+                  SELECT YEAR
+                </span>
 
                 <small>
-                  Choose an observation year
+                  Choose an observation
+                  year
                 </small>
               </div>
 
@@ -1139,6 +1437,7 @@ function Ranking() {
                         setSelectedYear(
                           year
                         );
+
                         setYearOpen(
                           false
                         );
@@ -1212,9 +1511,7 @@ function Ranking() {
 
           <select
             value={limit}
-            onChange={(
-              event
-            ) =>
+            onChange={(event) =>
               setLimit(
                 Number(
                   event.target.value
@@ -1281,9 +1578,7 @@ function Ranking() {
         </div>
       </div>
 
-      {/* =====================================================
-          CARD
-          ===================================================== */}
+      {/* CARD */}
 
       <div className="ranking-card">
         <div className="ranking-card-header">
@@ -1322,7 +1617,8 @@ function Ranking() {
 
           <div className="ranking-card-actions">
             <span className="ranking-count">
-              {visibleData.length} countries
+              {visibleData.length}{" "}
+              countries
             </span>
 
             <button
@@ -1346,9 +1642,7 @@ function Ranking() {
           </div>
         </div>
 
-        {/* ===================================================
-            CHART
-            =================================================== */}
+        {/* CHART */}
 
         <div
           className="ranking-chart"
@@ -1370,9 +1664,11 @@ function Ranking() {
               </h3>
 
               <p>
-                There are no observations
-                for the selected indicators
-                and year.
+                There are no
+                observations for
+                the selected
+                indicators and
+                year.
               </p>
             </div>
           ) : (
@@ -1425,42 +1721,8 @@ function Ranking() {
                 />
 
                 <Tooltip
-                  contentStyle={{
-                    borderRadius: 10,
-                    border:
-                      "1px solid #e2e8f0",
-                    boxShadow:
-                      "0 10px 30px rgba(15,23,42,0.12)",
-                    fontSize: 12,
-                  }}
-                  labelStyle={{
-                    color: "#0f172a",
-                    fontWeight: 700,
-                    marginBottom: 5,
-                  }}
-                  formatter={(
-                    value,
-                    name
-                  ) => {
-                    const numericValue =
-                      Number(value);
-
-                    return [
-                      formatValue(
-                        numericValue
-                      ),
-                      String(name),
-                    ];
-                  }}
-                  labelFormatter={(
-                    label
-                  ) =>
-                    String(
-                      label
-                    )
-                  }
                   content={
-                    undefined
+                    <RankingTooltip />
                   }
                 />
 
@@ -1513,9 +1775,7 @@ function Ranking() {
           )}
         </div>
 
-        {/* =====================================================
-            TABLE
-            ===================================================== */}
+        {/* TABLE */}
 
         {!rankingLoading &&
           visibleData.length >
@@ -1528,7 +1788,10 @@ function Ranking() {
                 }}
               >
                 <span>#</span>
-                <span>Country</span>
+
+                <span>
+                  Country
+                </span>
 
                 {selectedIndicators.map(
                   (
@@ -1546,7 +1809,9 @@ function Ranking() {
                   )
                 )}
 
-                <span>Total</span>
+                <span>
+                  Total
+                </span>
               </div>
 
               {visibleData.map(
@@ -1608,3 +1873,4 @@ function Ranking() {
 }
 
 export default Ranking;
+
