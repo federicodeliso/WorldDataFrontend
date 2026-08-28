@@ -135,12 +135,6 @@ function getIndicatorValue(
   return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
-/**
- * Small concurrency helper.
- *
- * Instead of firing 200+ requests simultaneously,
- * we process a controlled number at a time.
- */
 async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -176,18 +170,15 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-/**
- * Fetch with retry.
- *
- * Render/remote APIs can occasionally drop requests.
- * A retry dramatically reduces countries disappearing
- * because of one temporary network failure.
- */
 async function fetchWithRetry(
   url: string,
   attempts = 3
 ): Promise<Response | null> {
-  for (let attempt = 0; attempt < attempts; attempt++) {
+  for (
+    let attempt = 0;
+    attempt < attempts;
+    attempt++
+  ) {
     try {
       const response = await fetch(url);
 
@@ -195,7 +186,6 @@ async function fetchWithRetry(
         return response;
       }
 
-      // Don't repeatedly retry obvious client errors.
       if (
         response.status >= 400 &&
         response.status < 500
@@ -203,7 +193,7 @@ async function fetchWithRetry(
         return null;
       }
     } catch {
-      // Network failure: retry below.
+      // Retry below.
     }
 
     if (attempt < attempts - 1) {
@@ -220,31 +210,45 @@ async function fetchWithRetry(
 }
 
 function Ranking() {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [indicators, setIndicators] = useState<Indicator[]>([]);
+  const [countries, setCountries] =
+    useState<Country[]>([]);
+
+  const [indicators, setIndicators] =
+    useState<Indicator[]>([]);
 
   const [selectedIndicators, setSelectedIndicators] =
     useState<string[]>(["GDP"]);
 
-  const [selectedYear, setSelectedYear] = useState(2023);
+  // DEFAULT YEAR = 2023
+  const [selectedYear, setSelectedYear] =
+    useState(2023);
 
   const [direction, setDirection] =
     useState<"top" | "bottom">("top");
 
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] =
+    useState(10);
 
-  const [oecdOnly, setOecdOnly] = useState(false);
+  const [oecdOnly, setOecdOnly] =
+    useState(false);
 
-  const [data, setData] = useState<RankingDataRow[]>([]);
+  const [data, setData] =
+    useState<RankingDataRow[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [rankingLoading, setRankingLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] =
+    useState(true);
 
-  const [indicatorOpen, setIndicatorOpen] = useState(false);
-  const [indicatorSearch, setIndicatorSearch] = useState("");
+  const [rankingLoading, setRankingLoading] =
+    useState(false);
 
-  const [yearOpen, setYearOpen] = useState(false);
+  const [indicatorOpen, setIndicatorOpen] =
+    useState(false);
+
+  const [indicatorSearch, setIndicatorSearch] =
+    useState("");
+
+  const [yearOpen, setYearOpen] =
+    useState(false);
 
   const indicatorControlRef =
     useRef<HTMLDivElement | null>(null);
@@ -252,20 +256,15 @@ function Ranking() {
   const yearControlRef =
     useRef<HTMLDivElement | null>(null);
 
-  const chartRef = useRef<HTMLDivElement | null>(null);
+  const chartRef =
+    useRef<HTMLDivElement | null>(null);
 
-  /**
-   * Cache:
+  /*
+   * Cache key:
    *
-   * key = country + indicator + year
+   * country + indicator + year
    *
-   * This means changing:
-   * - order
-   * - number of countries displayed
-   * - OECD filter
-   * - year back/forth
-   *
-   * doesn't unnecessarily repeat requests that we already made.
+   * This keeps different years separate.
    */
   const dataCache = useRef<
     Map<string, RankingDataRow>
@@ -281,7 +280,6 @@ function Ranking() {
     async function loadMetadata() {
       try {
         setLoading(true);
-        setError("");
 
         const [
           countriesResponse,
@@ -344,14 +342,8 @@ function Ranking() {
             indicatorRows[0].code,
           ]);
         }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Could not load ranking metadata."
-          );
-        }
+      } catch {
+        // Metadata errors are intentionally silent.
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -374,7 +366,8 @@ function Ranking() {
     function handleClickOutside(
       event: MouseEvent
     ) {
-      const target = event.target as Node;
+      const target =
+        event.target as Node;
 
       if (
         indicatorControlRef.current &&
@@ -453,26 +446,15 @@ function Ranking() {
       try {
         setRankingLoading(true);
 
-        // Important:
-        // We intentionally do NOT show a data-notice error
-        // when some countries fail to load.
-        setError("");
+        const countryNames =
+          Array.from(
+            new Set(
+              countries
+                .map(getCountryName)
+                .filter(Boolean)
+            )
+          );
 
-        const countryNames = Array.from(
-          new Set(
-            countries
-              .map(getCountryName)
-              .filter(Boolean)
-          )
-        );
-
-        /**
-         * We intentionally don't launch one request per
-         * country simultaneously.
-         *
-         * 8 concurrent requests is much more reliable
-         * for a remote Render API.
-         */
         const results =
           await mapWithConcurrency(
             countryNames,
@@ -489,20 +471,17 @@ function Ranking() {
 
               let hasValue = false;
 
-              /**
-               * Indicators for one country are fetched
-               * in parallel.
-               */
               const indicatorResults =
                 await Promise.all(
                   selectedIndicators.map(
                     async (indicatorCode) => {
+                      /*
+                       * IMPORTANT:
+                       * Year is part of the cache key.
+                       */
                       const cacheKey =
                         `${country}::${indicatorCode}::${selectedYear}`;
 
-                      /**
-                       * Check the year-specific cache.
-                       */
                       const cached =
                         dataCache.current.get(
                           cacheKey
@@ -551,13 +530,14 @@ function Ranking() {
                               json.data ??
                               [];
 
-                        const row = rows.find(
-                          (item: any) =>
-                            Number(
-                              item.year
-                            ) ===
-                            selectedYear
-                        );
+                        const row =
+                          rows.find(
+                            (item: any) =>
+                              Number(
+                                item.year
+                              ) ===
+                              selectedYear
+                          );
 
                         if (!row) {
                           return null;
@@ -574,10 +554,6 @@ function Ranking() {
                           return null;
                         }
 
-                        /**
-                         * Cache the value for this
-                         * country/indicator/year.
-                         */
                         dataCache.current.set(
                           cacheKey,
                           {
@@ -612,14 +588,9 @@ function Ranking() {
                 }
               );
 
-              /**
-               * Important:
-               *
-               * A country is kept if it has at least
-               * one valid indicator.
-               *
-               * Countries that fail to load are simply
-               * omitted from the ranking.
+              /*
+               * Keep the country if at least one
+               * selected indicator has data.
                */
               return hasValue
                 ? result
@@ -631,35 +602,26 @@ function Ranking() {
           return;
         }
 
-        const validResults = results.filter(
-          (
-            row
-          ): row is RankingDataRow =>
-            row !== null
-        );
+        const validResults =
+          results.filter(
+            (
+              row
+            ): row is RankingDataRow =>
+              row !== null
+          );
 
         setData(validResults);
 
-        /**
-         * IMPORTANT:
-         *
-         * We intentionally do NOT set an error here.
-         *
-         * This removes the old:
-         *
-         * "Data notice
-         * 436 countries could not be loaded for 2023."
-         *
-         * message completely.
+        /*
+         * No warning/error message is shown if
+         * some countries are unavailable.
          */
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Could not load ranking data."
-          );
-        }
+      } catch {
+        /*
+         * Intentionally silent.
+         * The chart simply shows the data that
+         * could be loaded.
+         */
       } finally {
         if (!cancelled) {
           setRankingLoading(false);
@@ -727,32 +689,37 @@ function Ranking() {
         : a.total - b.total
     );
 
-    return rows.map((row, index) => ({
-      ...row,
-      rank: index + 1,
-    }));
+    return rows.map(
+      (row, index) => ({
+        ...row,
+        rank: index + 1,
+      })
+    );
   }, [
     filteredData,
     selectedIndicators,
     direction,
   ]);
 
-  const visibleData = useMemo(
-    () =>
-      sortedData.slice(
-        0,
-        limit
-      ),
-    [sortedData, limit]
-  );
+  const visibleData =
+    useMemo(
+      () =>
+        sortedData.slice(
+          0,
+          limit
+        ),
+      [sortedData, limit]
+    );
 
   // =========================================================
   // ITALY
   // =========================================================
 
-  const italy = sortedData.find(
-    (row) => row.country === "Italy"
-  );
+  const italy =
+    sortedData.find(
+      (row) =>
+        row.country === "Italy"
+    );
 
   const italyRank =
     italy?.rank ?? null;
@@ -761,29 +728,30 @@ function Ranking() {
   // INDICATOR SEARCH
   // =========================================================
 
-  const filteredIndicators = useMemo(() => {
-    const query =
-      indicatorSearch
-        .trim()
-        .toLowerCase();
+  const filteredIndicators =
+    useMemo(() => {
+      const query =
+        indicatorSearch
+          .trim()
+          .toLowerCase();
 
-    if (!query) {
-      return indicators;
-    }
+      if (!query) {
+        return indicators;
+      }
 
-    return indicators.filter(
-      (indicator) =>
-        indicator.code
-          .toLowerCase()
-          .includes(query) ||
-        indicator.name
-          ?.toLowerCase()
-          .includes(query)
-    );
-  }, [
-    indicators,
-    indicatorSearch,
-  ]);
+      return indicators.filter(
+        (indicator) =>
+          indicator.code
+            .toLowerCase()
+            .includes(query) ||
+          indicator.name
+            ?.toLowerCase()
+            .includes(query)
+      );
+    }, [
+      indicators,
+      indicatorSearch,
+    ]);
 
   // =========================================================
   // INDICATOR TOGGLE
@@ -838,34 +806,39 @@ function Ranking() {
   // CHART DATA
   // =========================================================
 
-  const chartData = useMemo(() => {
-    return visibleData.map(
-      (row) => {
-        const chartRow: Record<
-          string,
-          string | number
-        > = {
-          country: row.country,
-          total: row.total,
-        };
+  const chartData =
+    useMemo(() => {
+      return visibleData.map(
+        (row) => {
+          const chartRow: Record<
+            string,
+            string | number
+          > = {
+            country:
+              row.country,
+            total:
+              row.total,
+          };
 
-        selectedIndicators.forEach(
-          (indicatorCode) => {
-            chartRow[indicatorCode] =
-              getIndicatorValue(
-                row,
+          selectedIndicators.forEach(
+            (indicatorCode) => {
+              chartRow[
                 indicatorCode
-              );
-          }
-        );
+              ] =
+                getIndicatorValue(
+                  row,
+                  indicatorCode
+                );
+            }
+          );
 
-        return chartRow;
-      }
-    );
-  }, [
-    visibleData,
-    selectedIndicators,
-  ]);
+          return chartRow;
+        }
+      );
+    }, [
+      visibleData,
+      selectedIndicators,
+    ]);
 
   // =========================================================
   // SELECTED INDICATOR INFO
@@ -992,9 +965,7 @@ function Ranking() {
 
       link.click();
     } catch {
-      setError(
-        "Could not download the chart."
-      );
+      // Download errors are intentionally silent.
     }
   }
 
@@ -1376,6 +1347,8 @@ function Ranking() {
               </div>
 
               <div className="ranking-year-grid">
+
+                {/* 2025 → 1960 */}
                 {Array.from(
                   {
                     length: 66,
@@ -1407,6 +1380,7 @@ function Ranking() {
                     </button>
                   )
                 )}
+
               </div>
             </div>
           )}
@@ -1525,7 +1499,8 @@ function Ranking() {
             }
             onClick={() =>
               setOecdOnly(
-                (current) => !current
+                (current) =>
+                  !current
               )
             }
           >
@@ -1663,7 +1638,7 @@ function Ranking() {
 
               <ResponsiveContainer
                 width="100%"
-                height={620}
+                height={680}
               >
                 <BarChart
                   data={chartData}

@@ -662,12 +662,12 @@
   position: relative;
   width: 100%;
   height: clamp(
-    340px,
-    calc(100vh - 430px),
-    510px
+    460px,
+    calc(100vh - 300px),
+    680px
   );
-  min-height: 340px;
-  padding: 4px 18px 8px;
+  min-height: 460px;
+  padding: 8px 22px 12px;
   box-sizing: border-box;
   transition: opacity 0.15s ease;
 }
@@ -837,9 +837,9 @@
 
   .ranking-chart {
     height: clamp(
-      330px,
-      calc(100vh - 420px),
-      470px
+      420px,
+      calc(100vh - 340px),
+      620px
     );
   }
 }
@@ -893,8 +893,8 @@
   }
 
   .ranking-chart {
-    height: 390px;
-    min-height: 390px;
+    height: 430px;
+    min-height: 430px;
   }
 }
 
