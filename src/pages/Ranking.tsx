@@ -135,6 +135,91 @@ function getIndicatorValue(
   return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
+/**
+ * Small concurrency helper.
+ *
+ * Instead of firing 200+ requests simultaneously,
+ * we process a controlled number at a time.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex++;
+
+      if (index >= items.length) {
+        return;
+      }
+
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  const workerCount = Math.min(
+    concurrency,
+    Math.max(items.length, 1)
+  );
+
+  await Promise.all(
+    Array.from(
+      { length: workerCount },
+      () => worker()
+    )
+  );
+
+  return results;
+}
+
+/**
+ * Fetch with retry.
+ *
+ * Render/remote APIs can occasionally drop requests.
+ * A retry dramatically reduces countries disappearing
+ * because of one temporary network failure.
+ */
+async function fetchWithRetry(
+  url: string,
+  attempts = 3
+): Promise<Response | null> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const response = await fetch(url);
+
+      if (response.ok) {
+        return response;
+      }
+
+      // Retry server errors, but don't repeatedly retry
+      // obvious client errors such as 404.
+      if (
+        response.status >= 400 &&
+        response.status < 500
+      ) {
+        return null;
+      }
+    } catch {
+      // Network failure: retry below.
+    }
+
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) =>
+        setTimeout(
+          resolve,
+          350 * Math.pow(2, attempt)
+        )
+      );
+    }
+  }
+
+  return null;
+}
+
 function Ranking() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
@@ -170,11 +255,30 @@ function Ranking() {
 
   const chartRef = useRef<HTMLDivElement | null>(null);
 
+  /**
+   * Cache:
+   *
+   * key = country + indicator
+   *
+   * This means changing:
+   * - order
+   * - number of countries displayed
+   * - OECD filter
+   * - year back/forth
+   *
+   * doesn't unnecessarily repeat requests that we already made.
+   */
+  const dataCache = useRef<
+    Map<string, RankingDataRow>
+  >(new Map());
+
   // =========================================================
   // LOAD METADATA
   // =========================================================
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadMetadata() {
       try {
         setLoading(true);
@@ -184,16 +288,24 @@ function Ranking() {
           countriesResponse,
           indicatorsResponse,
         ] = await Promise.all([
-          fetch(`${API}/countries?limit=500`),
-          fetch(`${API}/indicators?limit=500`),
+          fetchWithRetry(
+            `${API}/countries?limit=500`
+          ),
+          fetchWithRetry(
+            `${API}/indicators?limit=500`
+          ),
         ]);
 
-        if (!countriesResponse.ok) {
-          throw new Error("Could not load countries.");
+        if (!countriesResponse) {
+          throw new Error(
+            "Could not load countries."
+          );
         }
 
-        if (!indicatorsResponse.ok) {
-          throw new Error("Could not load indicators.");
+        if (!indicatorsResponse) {
+          throw new Error(
+            "Could not load indicators."
+          );
         }
 
         const countriesJson =
@@ -216,6 +328,10 @@ function Ranking() {
               indicatorsJson.data ??
               [];
 
+        if (cancelled) {
+          return;
+        }
+
         setCountries(countryRows);
         setIndicators(indicatorRows);
 
@@ -230,17 +346,25 @@ function Ranking() {
           ]);
         }
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Could not load ranking metadata."
-        );
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Could not load ranking metadata."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     loadMetadata();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // =========================================================
@@ -248,19 +372,25 @@ function Ranking() {
   // =========================================================
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(
+      event: MouseEvent
+    ) {
       const target = event.target as Node;
 
       if (
         indicatorControlRef.current &&
-        !indicatorControlRef.current.contains(target)
+        !indicatorControlRef.current.contains(
+          target
+        )
       ) {
         setIndicatorOpen(false);
       }
 
       if (
         yearControlRef.current &&
-        !yearControlRef.current.contains(target)
+        !yearControlRef.current.contains(
+          target
+        )
       ) {
         setYearOpen(false);
       }
@@ -296,7 +426,9 @@ function Ranking() {
     );
   }, [countries]);
 
-  function isOecdCountry(countryName: string) {
+  function isOecdCountry(
+    countryName: string
+  ) {
     if (oecdCountries.size > 0) {
       return oecdCountries.has(countryName);
     }
@@ -316,78 +448,34 @@ function Ranking() {
       return;
     }
 
+    let cancelled = false;
+
     async function loadRankingData() {
       try {
         setRankingLoading(true);
         setError("");
 
-        const countryNames = countries
-          .map(getCountryName)
-          .filter(Boolean);
+        const countryNames = Array.from(
+          new Set(
+            countries
+              .map(getCountryName)
+              .filter(Boolean)
+          )
+        );
 
-        const requests = countryNames.map(
-          async (country) => {
-            try {
-              const indicatorResults =
-                await Promise.all(
-                  selectedIndicators.map(
-                    async (indicatorCode) => {
-                      const response = await fetch(
-                        `${API}/data/${encodeURIComponent(
-                          country
-                        )}/${encodeURIComponent(
-                          indicatorCode
-                        )}`
-                      );
-
-                      if (!response.ok) {
-                        return null;
-                      }
-
-                      const json =
-                        await response.json();
-
-                      const rows = Array.isArray(json)
-                        ? json
-                        : json.results ??
-                          json.data ??
-                          [];
-
-                      const row = rows.find(
-                        (item: any) =>
-                          Number(item.year) ===
-                          selectedYear
-                      );
-
-                      if (!row) {
-                        return null;
-                      }
-
-                      const value = Number(row.value);
-
-                      if (!Number.isFinite(value)) {
-                        return null;
-                      }
-
-                      return {
-                        indicatorCode,
-                        value,
-                      };
-                    }
-                  )
-                );
-
-              const validResults =
-                indicatorResults.filter(
-                  (
-                    item
-                  ): item is {
-                    indicatorCode: string;
-                    value: number;
-                  } => item !== null
-                );
-
-              if (validResults.length === 0) {
+        /**
+         * We intentionally don't launch one request per
+         * country simultaneously.
+         *
+         * 8 concurrent requests is much more reliable
+         * for a remote Render API.
+         */
+        const results =
+          await mapWithConcurrency(
+            countryNames,
+            8,
+            async (country) => {
+              if (cancelled) {
                 return null;
               }
 
@@ -396,46 +484,193 @@ function Ranking() {
                 year: selectedYear,
               };
 
-              validResults.forEach(
-                ({
-                  indicatorCode,
-                  value,
-                }) => {
-                  result[indicatorCode] = value;
+              let hasValue = false;
+
+              /**
+               * Indicators for one country are fetched
+               * in parallel.
+               */
+              const indicatorResults =
+                await Promise.all(
+                  selectedIndicators.map(
+                    async (indicatorCode) => {
+                      const cacheKey =
+                        `${country}::${indicatorCode}`;
+
+                      const cached =
+                        dataCache.current.get(
+                          cacheKey
+                        );
+
+                      if (cached) {
+                        const cachedValue =
+                          cached[indicatorCode];
+
+                        if (
+                          typeof cachedValue ===
+                            "number" &&
+                          Number.isFinite(
+                            cachedValue
+                          )
+                        ) {
+                          return {
+                            indicatorCode,
+                            value:
+                              cachedValue,
+                          };
+                        }
+                      }
+
+                      const response =
+                        await fetchWithRetry(
+                          `${API}/data/${encodeURIComponent(
+                            country
+                          )}/${encodeURIComponent(
+                            indicatorCode
+                          )}`
+                        );
+
+                      if (!response) {
+                        return null;
+                      }
+
+                      try {
+                        const json =
+                          await response.json();
+
+                        const rows =
+                          Array.isArray(json)
+                            ? json
+                            : json.results ??
+                              json.data ??
+                              [];
+
+                        const row = rows.find(
+                          (item: any) =>
+                            Number(
+                              item.year
+                            ) ===
+                            selectedYear
+                        );
+
+                        if (!row) {
+                          return null;
+                        }
+
+                        const value =
+                          Number(row.value);
+
+                        if (
+                          !Number.isFinite(
+                            value
+                          )
+                        ) {
+                          return null;
+                        }
+
+                        /**
+                         * Cache the value for this
+                         * country/indicator/year.
+                         *
+                         * The cache key includes year
+                         * so historical selections remain
+                         * correct.
+                         */
+                        dataCache.current.set(
+                          `${cacheKey}::${selectedYear}`,
+                          {
+                            country,
+                            year: selectedYear,
+                            [indicatorCode]:
+                              value,
+                          }
+                        );
+
+                        return {
+                          indicatorCode,
+                          value,
+                        };
+                      } catch {
+                        return null;
+                      }
+                    }
+                  )
+                );
+
+              indicatorResults.forEach(
+                (item) => {
+                  if (!item) {
+                    return;
+                  }
+
+                  result[item.indicatorCode] =
+                    item.value;
+
+                  hasValue = true;
                 }
               );
 
-              return result;
-            } catch {
-              return null;
+              /**
+               * Important:
+               *
+               * A country is kept if it has at least
+               * one valid indicator.
+               *
+               * Previously, a failed indicator request
+               * could make the country disappear entirely.
+               */
+              return hasValue
+                ? result
+                : null;
             }
-          }
+          );
+
+        if (cancelled) {
+          return;
+        }
+
+        const validResults = results.filter(
+          (
+            row
+          ): row is RankingDataRow =>
+            row !== null
         );
 
-        const results = await Promise.all(requests);
+        setData(validResults);
 
-        setData(
-          results.filter(
-            (
-              row
-            ): row is RankingDataRow =>
-              row !== null
-          )
-        );
+        /**
+         * If some countries failed even after retries,
+         * tell the user instead of silently pretending
+         * the dataset is complete.
+         */
+        if (
+          validResults.length <
+          countryNames.length
+        ) {
+          setError(
+            `${countryNames.length - validResults.length} countries could not be loaded for ${selectedYear}.`
+          );
+        }
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Could not load ranking data."
-        );
-
-        setData([]);
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Could not load ranking data."
+          );
+        }
       } finally {
-        setRankingLoading(false);
+        if (!cancelled) {
+          setRankingLoading(false);
+        }
       }
     }
 
     loadRankingData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     countries,
     selectedIndicators,
@@ -518,7 +753,8 @@ function Ranking() {
     (row) => row.country === "Italy"
   );
 
-  const italyRank = italy?.rank ?? null;
+  const italyRank =
+    italy?.rank ?? null;
 
   // =========================================================
   // INDICATOR SEARCH
@@ -526,7 +762,9 @@ function Ranking() {
 
   const filteredIndicators = useMemo(() => {
     const query =
-      indicatorSearch.trim().toLowerCase();
+      indicatorSearch
+        .trim()
+        .toLowerCase();
 
     if (!query) {
       return indicators;
@@ -644,8 +882,11 @@ function Ranking() {
   // FORMAT
   // =========================================================
 
-  function formatValue(value: number) {
-    const absolute = Math.abs(value);
+  function formatValue(
+    value: number
+  ) {
+    const absolute =
+      Math.abs(value);
 
     if (
       absolute >=
@@ -728,7 +969,9 @@ function Ranking() {
         } ${indicatorTitle} — ${selectedYear}`;
 
       const link =
-        document.createElement("a");
+        document.createElement(
+          "a"
+        );
 
       link.download =
         `${title
@@ -761,12 +1004,23 @@ function Ranking() {
   if (loading) {
     return (
       <section className="ranking-page">
-        <div className="ranking-loading">
-          <Loader2
-            className="spin"
-            size={18}
-          />
-          Loading WorldData...
+        <div className="ranking-initial-loading">
+          <div className="ranking-loading-spinner">
+            <Loader2
+              className="spin"
+              size={20}
+            />
+          </div>
+
+          <div>
+            <strong>
+              Loading WorldData
+            </strong>
+
+            <span>
+              Preparing countries and indicators...
+            </span>
+          </div>
         </div>
       </section>
     );
@@ -778,6 +1032,11 @@ function Ranking() {
 
   return (
     <section className="ranking-page">
+
+      {/* =====================================================
+          HEADING
+          ===================================================== */}
+
       <div className="ranking-heading">
         <div>
           <div className="eyebrow">
@@ -808,13 +1067,19 @@ function Ranking() {
         )}
       </div>
 
+      {/* =====================================================
+          ERROR / STATUS
+          ===================================================== */}
+
       {error && (
         <div className="ranking-error">
           <strong>
-            Unable to load data
+            Data notice
           </strong>
 
-          <span>{error}</span>
+          <span>
+            {error}
+          </span>
         </div>
       )}
 
@@ -823,6 +1088,7 @@ function Ranking() {
           ===================================================== */}
 
       <div className="ranking-controls">
+
         {/* INDICATORS */}
 
         <div
@@ -857,6 +1123,7 @@ function Ranking() {
           >
             <div className="ranking-selection-content">
               <div className="ranking-selected-tags">
+
                 {selectedIndicators.length ===
                 0 ? (
                   <span className="ranking-placeholder">
@@ -906,6 +1173,7 @@ function Ranking() {
                                 event
                               ) => {
                                 event.stopPropagation();
+
                                 removeIndicator(
                                   indicatorCode
                                 );
@@ -918,6 +1186,7 @@ function Ranking() {
                                   "Enter"
                                 ) {
                                   event.stopPropagation();
+
                                   removeIndicator(
                                     indicatorCode
                                   );
@@ -942,6 +1211,7 @@ function Ranking() {
                     )}
                   </>
                 )}
+
               </div>
             </div>
 
@@ -957,6 +1227,7 @@ function Ranking() {
 
           {indicatorOpen && (
             <div className="ranking-selector-panel">
+
               <div className="ranking-selector-search">
                 <Search size={14} />
 
@@ -1110,7 +1381,9 @@ function Ranking() {
           {yearOpen && (
             <div className="ranking-year-panel">
               <div className="ranking-year-panel-title">
-                <span>SELECT YEAR</span>
+                <span>
+                  SELECT YEAR
+                </span>
 
                 <small>
                   Choose an observation year
@@ -1139,6 +1412,7 @@ function Ranking() {
                         setSelectedYear(
                           year
                         );
+
                         setYearOpen(
                           false
                         );
@@ -1178,6 +1452,7 @@ function Ranking() {
               <ArrowUp
                 size={13}
               />
+
               Highest
             </button>
 
@@ -1198,6 +1473,7 @@ function Ranking() {
               <ArrowDown
                 size={13}
               />
+
               Lowest
             </button>
           </div>
@@ -1286,6 +1562,7 @@ function Ranking() {
           ===================================================== */}
 
       <div className="ranking-card">
+
         <div className="ranking-card-header">
           <div>
             <div className="eyebrow">
@@ -1314,6 +1591,7 @@ function Ranking() {
                   " + "
                 )}{" "}
               · {selectedYear}
+
               {oecdOnly
                 ? " · OECD"
                 : ""}
@@ -1321,9 +1599,20 @@ function Ranking() {
           </div>
 
           <div className="ranking-card-actions">
+
             <span className="ranking-count">
               {visibleData.length} countries
             </span>
+
+            {rankingLoading && (
+              <span className="ranking-updating">
+                <Loader2
+                  size={13}
+                  className="spin"
+                />
+                Updating
+              </span>
+            )}
 
             <button
               type="button"
@@ -1351,19 +1640,15 @@ function Ranking() {
             =================================================== */}
 
         <div
-          className="ranking-chart"
+          className={
+            rankingLoading
+              ? "ranking-chart loading"
+              : "ranking-chart"
+          }
           ref={chartRef}
         >
-          {rankingLoading ? (
-            <div className="ranking-loading">
-              <Loader2
-                className="spin"
-                size={18}
-              />
-              Updating ranking...
-            </div>
-          ) : chartData.length ===
-            0 ? (
+          {chartData.length ===
+          0 ? (
             <div className="ranking-empty">
               <h3>
                 No data available
@@ -1376,140 +1661,157 @@ function Ranking() {
               </p>
             </div>
           ) : (
-            <ResponsiveContainer
-              width="100%"
-              height={Math.max(
-                500,
-                visibleData.length *
-                  32
+            <div className="ranking-chart-inner">
+
+              {rankingLoading && (
+                <div className="ranking-chart-loading">
+                  <Loader2
+                    size={18}
+                    className="spin"
+                  />
+
+                  <span>
+                    Updating ranking...
+                  </span>
+                </div>
               )}
-            >
-              <BarChart
-                data={chartData}
-                margin={{
-                  top: 20,
-                  right: 35,
-                  left: 15,
-                  bottom: 100,
-                }}
+
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
               >
-                <CartesianGrid
-                  vertical={false}
-                  stroke="#e8ecf1"
-                />
+                <BarChart
+                  data={chartData}
+                  layout="vertical"
+                  margin={{
+                    top: 10,
+                    right: 30,
+                    left: 10,
+                    bottom: 10,
+                  }}
+                >
+                  <CartesianGrid
+                    horizontal={false}
+                    stroke="#e8ecf1"
+                  />
 
-                <XAxis
-                  dataKey="country"
-                  interval={0}
-                  angle={-55}
-                  textAnchor="end"
-                  height={110}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{
-                    fontSize: 10,
-                    fill: "#334155",
-                  }}
-                />
+                  <XAxis
+                    type="number"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{
+                      fontSize: 10,
+                      fill: "#64748b",
+                    }}
+                    tickFormatter={
+                      formatValue
+                    }
+                  />
 
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{
-                    fontSize: 10,
-                    fill: "#64748b",
-                  }}
-                  tickFormatter={
-                    formatValue
-                  }
-                />
+                  <YAxis
+                    type="category"
+                    dataKey="country"
+                    width={105}
+                    interval={0}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{
+                      fontSize: 11,
+                      fill: "#334155",
+                    }}
+                  />
 
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 10,
-                    border:
-                      "1px solid #e2e8f0",
-                    boxShadow:
-                      "0 10px 30px rgba(15,23,42,0.12)",
-                    fontSize: 12,
-                  }}
-                  labelStyle={{
-                    color: "#0f172a",
-                    fontWeight: 700,
-                    marginBottom: 5,
-                  }}
-                  formatter={(
-                    value,
-                    name
-                  ) => {
-                    const numericValue =
-                      Number(value);
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 10,
+                      border:
+                        "1px solid #e2e8f0",
+                      boxShadow:
+                        "0 10px 30px rgba(15,23,42,0.12)",
+                      fontSize: 12,
+                    }}
+                    labelStyle={{
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      marginBottom: 5,
+                    }}
+                    formatter={(
+                      value,
+                      name
+                    ) => {
+                      const numericValue =
+                        Number(
+                          value
+                        );
 
-                    return [
-                      formatValue(
-                        numericValue
-                      ),
-                      String(name),
-                    ];
-                  }}
-                  labelFormatter={(
-                    label
-                  ) =>
-                    String(
+                      return [
+                        formatValue(
+                          numericValue
+                        ),
+                        String(
+                          name
+                        ),
+                      ];
+                    }}
+                    labelFormatter={(
                       label
+                    ) =>
+                      String(
+                        label
+                      )
+                    }
+                  />
+
+                  <Legend />
+
+                  {selectedIndicators.map(
+                    (
+                      indicatorCode,
+                      index
+                    ) => (
+                      <Bar
+                        key={
+                          indicatorCode
+                        }
+                        dataKey={
+                          indicatorCode
+                        }
+                        name={
+                          indicatorCode
+                        }
+                        stackId="ranking"
+                        fill={
+                          INDICATOR_COLORS[
+                            index %
+                              INDICATOR_COLORS.length
+                          ]
+                        }
+                        radius={
+                          index ===
+                          selectedIndicators.length -
+                            1
+                            ? [
+                                0,
+                                4,
+                                4,
+                                0,
+                              ]
+                            : [
+                                0,
+                                0,
+                                0,
+                                0,
+                              ]
+                        }
+                        isAnimationActive={
+                          false
+                        }
+                      />
                     )
-                  }
-                  content={
-                    undefined
-                  }
-                />
-
-                <Legend />
-
-                {selectedIndicators.map(
-                  (
-                    indicatorCode,
-                    index
-                  ) => (
-                    <Bar
-                      key={
-                        indicatorCode
-                      }
-                      dataKey={
-                        indicatorCode
-                      }
-                      name={
-                        indicatorCode
-                      }
-                      stackId="ranking"
-                      fill={
-                        INDICATOR_COLORS[
-                          index %
-                            INDICATOR_COLORS.length
-                        ]
-                      }
-                      radius={
-                        index ===
-                        selectedIndicators.length -
-                          1
-                          ? [
-                              4,
-                              4,
-                              0,
-                              0,
-                            ]
-                          : [
-                              0,
-                              0,
-                              0,
-                              0,
-                            ]
-                      }
-                    />
-                  )
-                )}
-              </BarChart>
-            </ResponsiveContainer>
+                  )}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
 
@@ -1521,14 +1823,19 @@ function Ranking() {
           visibleData.length >
             0 && (
             <div className="ranking-table">
+
               <div
                 className="ranking-table-head"
                 style={{
-                  gridTemplateColumns: `60px 1fr repeat(${selectedIndicators.length}, 140px) 150px`,
+                  gridTemplateColumns:
+                    `60px 1fr repeat(${selectedIndicators.length}, 140px) 150px`,
                 }}
               >
                 <span>#</span>
-                <span>Country</span>
+
+                <span>
+                  Country
+                </span>
 
                 {selectedIndicators.map(
                   (
@@ -1546,7 +1853,9 @@ function Ranking() {
                   )
                 )}
 
-                <span>Total</span>
+                <span>
+                  Total
+                </span>
               </div>
 
               {visibleData.map(
@@ -1559,7 +1868,8 @@ function Ranking() {
                         : "ranking-row"
                     }
                     style={{
-                      gridTemplateColumns: `60px 1fr repeat(${selectedIndicators.length}, 140px) 150px`,
+                      gridTemplateColumns:
+                        `60px 1fr repeat(${selectedIndicators.length}, 140px) 150px`,
                     }}
                     key={
                       row.country
@@ -1570,7 +1880,9 @@ function Ranking() {
                     </strong>
 
                     <span>
-                      {row.country}
+                      {
+                        row.country
+                      }
                     </span>
 
                     {selectedIndicators.map(
@@ -1608,3 +1920,4 @@ function Ranking() {
 }
 
 export default Ranking;
+
