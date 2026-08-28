@@ -195,8 +195,7 @@ async function fetchWithRetry(
         return response;
       }
 
-      // Retry server errors, but don't repeatedly retry
-      // obvious client errors such as 404.
+      // Don't repeatedly retry obvious client errors.
       if (
         response.status >= 400 &&
         response.status < 500
@@ -227,7 +226,7 @@ function Ranking() {
   const [selectedIndicators, setSelectedIndicators] =
     useState<string[]>(["GDP"]);
 
-  const [selectedYear, setSelectedYear] = useState(2024);
+  const [selectedYear, setSelectedYear] = useState(2023);
 
   const [direction, setDirection] =
     useState<"top" | "bottom">("top");
@@ -258,7 +257,7 @@ function Ranking() {
   /**
    * Cache:
    *
-   * key = country + indicator
+   * key = country + indicator + year
    *
    * This means changing:
    * - order
@@ -453,6 +452,10 @@ function Ranking() {
     async function loadRankingData() {
       try {
         setRankingLoading(true);
+
+        // Important:
+        // We intentionally do NOT show a data-notice error
+        // when some countries fail to load.
         setError("");
 
         const countryNames = Array.from(
@@ -495,8 +498,11 @@ function Ranking() {
                   selectedIndicators.map(
                     async (indicatorCode) => {
                       const cacheKey =
-                        `${country}::${indicatorCode}`;
+                        `${country}::${indicatorCode}::${selectedYear}`;
 
+                      /**
+                       * Check the year-specific cache.
+                       */
                       const cached =
                         dataCache.current.get(
                           cacheKey
@@ -571,13 +577,9 @@ function Ranking() {
                         /**
                          * Cache the value for this
                          * country/indicator/year.
-                         *
-                         * The cache key includes year
-                         * so historical selections remain
-                         * correct.
                          */
                         dataCache.current.set(
-                          `${cacheKey}::${selectedYear}`,
+                          cacheKey,
                           {
                             country,
                             year: selectedYear,
@@ -616,8 +618,8 @@ function Ranking() {
                * A country is kept if it has at least
                * one valid indicator.
                *
-               * Previously, a failed indicator request
-               * could make the country disappear entirely.
+               * Countries that fail to load are simply
+               * omitted from the ranking.
                */
               return hasValue
                 ? result
@@ -639,18 +641,17 @@ function Ranking() {
         setData(validResults);
 
         /**
-         * If some countries failed even after retries,
-         * tell the user instead of silently pretending
-         * the dataset is complete.
+         * IMPORTANT:
+         *
+         * We intentionally do NOT set an error here.
+         *
+         * This removes the old:
+         *
+         * "Data notice
+         * 436 countries could not be loaded for 2023."
+         *
+         * message completely.
          */
-        if (
-          validResults.length <
-          countryNames.length
-        ) {
-          setError(
-            `${countryNames.length - validResults.length} countries could not be loaded for ${selectedYear}.`
-          );
-        }
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -1068,22 +1069,6 @@ function Ranking() {
       </div>
 
       {/* =====================================================
-          ERROR / STATUS
-          ===================================================== */}
-
-      {error && (
-        <div className="ranking-error">
-          <strong>
-            Data notice
-          </strong>
-
-          <span>
-            {error}
-          </span>
-        </div>
-      )}
-
-      {/* =====================================================
           CONTROLS
           ===================================================== */}
 
@@ -1393,10 +1378,10 @@ function Ranking() {
               <div className="ranking-year-grid">
                 {Array.from(
                   {
-                    length: 65,
+                    length: 66,
                   },
                   (_, index) =>
-                    2024 - index
+                    2025 - index
                 ).map(
                   (year) => (
                     <button
@@ -1678,17 +1663,18 @@ function Ranking() {
 
               <ResponsiveContainer
                 width="100%"
-                height="100%"
+                height={620}
               >
                 <BarChart
                   data={chartData}
                   layout="vertical"
                   margin={{
-                    top: 10,
-                    right: 30,
-                    left: 10,
-                    bottom: 10,
+                    top: 20,
+                    right: 35,
+                    left: 15,
+                    bottom: 80,
                   }}
+                  barCategoryGap="18%"
                 >
                   <CartesianGrid
                     horizontal={false}
@@ -1711,7 +1697,7 @@ function Ranking() {
                   <YAxis
                     type="category"
                     dataKey="country"
-                    width={105}
+                    width={125}
                     interval={0}
                     tickLine={false}
                     axisLine={false}
@@ -1920,4 +1906,3 @@ function Ranking() {
 }
 
 export default Ranking;
-
