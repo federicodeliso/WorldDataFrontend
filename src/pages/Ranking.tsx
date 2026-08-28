@@ -1638,11 +1638,10 @@ function Ranking() {
 
               <ResponsiveContainer
                 width="100%"
-                height={680}
+                height="100%"
               >
                 <BarChart
                   data={chartData}
-                  layout="vertical"
                   margin={{
                     top: 20,
                     right: 35,
@@ -1652,11 +1651,26 @@ function Ranking() {
                   barCategoryGap="18%"
                 >
                   <CartesianGrid
-                    horizontal={false}
+                    vertical={false}
                     stroke="#e8ecf1"
                   />
 
                   <XAxis
+                    type="category"
+                    dataKey="country"
+                    interval={0}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{
+                      fontSize: 10,
+                      fill: "#334155",
+                    }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+
+                  <YAxis
                     type="number"
                     tickLine={false}
                     axisLine={false}
@@ -1667,19 +1681,6 @@ function Ranking() {
                     tickFormatter={
                       formatValue
                     }
-                  />
-
-                  <YAxis
-                    type="category"
-                    dataKey="country"
-                    width={125}
-                    interval={0}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{
-                      fontSize: 11,
-                      fill: "#334155",
-                    }}
                   />
 
                   <Tooltip
@@ -1749,12 +1750,11 @@ function Ranking() {
                         }
                         radius={
                           index ===
-                          selectedIndicators.length -
-                            1
+                          selectedIndicators.length - 1
                             ? [
+                                4,
+                                4,
                                 0,
-                                4,
-                                4,
                                 0,
                               ]
                             : [
