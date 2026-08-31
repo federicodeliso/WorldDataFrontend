@@ -1,32 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { feature } from "topojson-client";
+import { Download, Minus, Plus, RotateCcw } from "lucide-react";
+import { geoNaturalEarth1, geoPath, type GeoProjection } from "d3-geo";
 import type {
   Feature,
   FeatureCollection,
   Geometry,
+  GeoJsonProperties,
 } from "geojson";
-import type { Topology } from "topojson-specification";
-import {
-  geoNaturalEarth1,
-  geoPath,
-  type GeoProjection,
-} from "d3-geo";
-import {
-  Download,
-  Minus,
-  Plus,
-  RotateCcw,
-} from "lucide-react";
-import countriesTopology from "world-atlas/countries-110m.json";
 import "./Map.css";
 
 const API = "https://worlddataapi-kf6d.onrender.com";
+const GEOJSON_URL = "/Combinedwitheuregions.geojson";
 
-type MapLevel =
-  | "grouped"
-  | "standard"
-  | "states"
-  | "regions";
+const MAP_WIDTH = 1000;
+const MAP_HEIGHT = 520;
+
+const COLORS = [
+  "#f1f5f9",
+  "#dbeafe",
+  "#bfdbfe",
+  "#93c5fd",
+  "#60a5fa",
+  "#3b82f6",
+  "#2563eb",
+  "#1d4ed8",
+  "#1e40af",
+  "#172554",
+];
 
 type Country = {
   name?: string;
@@ -51,119 +51,45 @@ type Observation = {
   value: number;
 };
 
-type MapProperties = {
+type RegionLevel =
+  | "countries"
+  | "us_states"
+  | "canada_provinces"
+  | "china_regions"
+  | "india_states"
+  | "eu_regions";
+
+type MapFeatureProperties = GeoJsonProperties & {
   name?: string;
   NAME?: string;
-  NAME_1?: string;
-  NAME_2?: string;
-  shapeName?: string;
-  shapeISO?: string;
-  shapeID?: string;
-  id?: string;
+  NAME_LATN?: string;
   NUTS_ID?: string;
   NUTS_NAME?: string;
-  na?: string;
-  [key: string]: unknown;
+  st_nm?: string;
+  STATE?: string;
+  abbrev?: string;
+  postal?: string;
+  iso_a2?: string;
+  iso_a3?: string;
+  adm0_a3?: string;
+  admin?: string;
+  sovereign?: string;
+  shapeName?: string;
+  shapeISO?: string;
+  shapeGroup?: string;
 };
 
 type MapFeature = Feature<
-  Geometry,
-  MapProperties
+  Geometry | null,
+  MapFeatureProperties
 >;
 
-type MapFeatureCollection =
-  FeatureCollection<
-    Geometry,
-    MapProperties
-  >;
+type MapCollection = FeatureCollection<
+  Geometry | null,
+  MapFeatureProperties
+>;
 
-type RegionSource = {
-  name: string;
-  iso3: string;
-  url: string;
-};
-
-const topology =
-  countriesTopology as unknown as Topology;
-
-const countryCollection =
-  feature(
-    topology,
-    topology.objects.countries
-  ) as unknown as MapFeatureCollection;
-
-const MAP_WIDTH = 1000;
-const MAP_HEIGHT = 520;
-
-const COLORS = [
-  "#f1f5f9",
-  "#dbeafe",
-  "#bfdbfe",
-  "#93c5fd",
-  "#60a5fa",
-  "#3b82f6",
-  "#2563eb",
-  "#1d4ed8",
-  "#1e40af",
-  "#172554",
-];
-
-/*
- * geoBoundaries ADM1 sources.
- *
- * ADM1 gives the first administrative level:
- * USA -> states
- * CAN -> provinces/territories
- * CHN -> provinces/autonomous regions/municipalities
- * IND -> states/union territories
- *
- * geoBoundaries provides programmatic access to ADM1
- * GeoJSON layers.
- */
-const STATE_SOURCES: RegionSource[] = [
-  {
-    name: "United States",
-    iso3: "USA",
-    url:
-      "https://www.geoboundaries.org/api/current/gbOpen/USA/ADM1/",
-  },
-  {
-    name: "Canada",
-    iso3: "CAN",
-    url:
-      "https://www.geoboundaries.org/api/current/gbOpen/CAN/ADM1/",
-  },
-  {
-    name: "China",
-    iso3: "CHN",
-    url:
-      "https://www.geoboundaries.org/api/current/gbOpen/CHN/ADM1/",
-  },
-  {
-    name: "India",
-    iso3: "IND",
-    url:
-      "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM1/",
-  },
-];
-
-/*
- * Eurostat NUTS 2024, WGS84, 20M scale, NUTS2.
- *
- * NUTS2 is a good default for a WorldData-style map:
- * detailed enough to be useful without becoming extremely
- * heavy like NUTS3.
- */
-const EU_REGIONS_URL =
-  "https://raw.githubusercontent.com/eurostat/Nuts2json/master/pub/v2/2024/4326/20M/nutsrg_2.json";
-
-/*
- * Country aliases.
- */
-const COUNTRY_ALIASES: Record<
-  string,
-  string[]
-> = {
+const COUNTRY_ALIASES: Record<string, string[]> = {
   "united states": [
     "united states of america",
     "usa",
@@ -266,24 +192,154 @@ const COUNTRY_ALIASES: Record<
   ],
 };
 
-function normalizeName(
-  value: string
-) {
+const US_STATES = new Set([
+  "alabama",
+  "alaska",
+  "arizona",
+  "arkansas",
+  "california",
+  "colorado",
+  "connecticut",
+  "delaware",
+  "district of columbia",
+  "florida",
+  "georgia",
+  "hawaii",
+  "idaho",
+  "illinois",
+  "indiana",
+  "iowa",
+  "kansas",
+  "kentucky",
+  "louisiana",
+  "maine",
+  "maryland",
+  "massachusetts",
+  "michigan",
+  "minnesota",
+  "mississippi",
+  "missouri",
+  "montana",
+  "nebraska",
+  "nevada",
+  "new hampshire",
+  "new jersey",
+  "new mexico",
+  "new york",
+  "north carolina",
+  "north dakota",
+  "ohio",
+  "oklahoma",
+  "oregon",
+  "pennsylvania",
+  "rhode island",
+  "south carolina",
+  "south dakota",
+  "tennessee",
+  "texas",
+  "utah",
+  "vermont",
+  "virginia",
+  "washington",
+  "west virginia",
+  "wisconsin",
+  "wyoming",
+]);
+
+const CANADA_PROVINCES = new Set([
+  "alberta",
+  "british columbia",
+  "manitoba",
+  "new brunswick",
+  "newfoundland and labrador",
+  "northwest territories",
+  "nova scotia",
+  "nunavut",
+  "ontario",
+  "prince edward island",
+  "quebec",
+  "saskatchewan",
+  "yukon",
+]);
+
+const CHINA_REGIONS = new Set([
+  "anhui",
+  "beijing",
+  "chongqing",
+  "fujian",
+  "gansu",
+  "guangdong",
+  "guangxi",
+  "guizhou",
+  "hainan",
+  "hebei",
+  "heilongjiang",
+  "henan",
+  "hubei",
+  "hunan",
+  "inner mongolia",
+  "jiangsu",
+  "jiangxi",
+  "jilin",
+  "liaoning",
+  "ningxia",
+  "qinghai",
+  "shaanxi",
+  "shandong",
+  "shanghai",
+  "shanxi",
+  "sichuan",
+  "tianjin",
+  "tibet",
+  "xinjiang",
+  "yunnan",
+  "zhejiang",
+]);
+
+const INDIA_STATES = new Set([
+  "andaman and nicobar islands",
+  "andhra pradesh",
+  "arunachal pradesh",
+  "assam",
+  "bihar",
+  "chandigarh",
+  "chhattisgarh",
+  "delhi",
+  "goa",
+  "gujarat",
+  "haryana",
+  "himachal pradesh",
+  "jammu and kashmir",
+  "jharkhand",
+  "karnataka",
+  "kerala",
+  "madhya pradesh",
+  "maharashtra",
+  "manipu",
+  "manipur",
+  "meghalaya",
+  "mizoram",
+  "nagaland",
+  "odisha",
+  "puducherry",
+  "punjab",
+  "rajasthan",
+  "sikkim",
+  "tamil nadu",
+  "telangana",
+  "tripura",
+  "uttar pradesh",
+  "uttarakhand",
+  "west bengal",
+]);
+
+function normalizeName(value: string) {
   return value
     .toLowerCase()
     .normalize("NFD")
-    .replace(
-      /[\u0300-\u036f]/g,
-      ""
-    )
-    .replace(
-      /&/g,
-      "and"
-    )
-    .replace(
-      /[^a-z0-9]+/g,
-      " "
-    )
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
 
@@ -291,37 +347,30 @@ function countryNamesMatch(
   apiName: string,
   mapName: string
 ) {
-  const api =
-    normalizeName(apiName);
-
-  const map =
-    normalizeName(mapName);
+  const api = normalizeName(apiName);
+  const map = normalizeName(mapName);
 
   if (api === map) {
     return true;
   }
 
-  const aliases =
-    COUNTRY_ALIASES[api];
+  const aliases = COUNTRY_ALIASES[api];
 
   if (
     aliases?.some(
       (alias) =>
-        normalizeName(alias) ===
-        map
+        normalizeName(alias) === map
     )
   ) {
     return true;
   }
 
-  const reverseAliases =
-    COUNTRY_ALIASES[map];
+  const reverseAliases = COUNTRY_ALIASES[map];
 
   if (
     reverseAliases?.some(
       (alias) =>
-        normalizeName(alias) ===
-        api
+        normalizeName(alias) === api
     )
   ) {
     return true;
@@ -331,34 +380,76 @@ function countryNamesMatch(
 }
 
 function getFeatureName(
-  mapFeature: MapFeature
+  feature: MapFeature
 ) {
-  const properties =
-    mapFeature.properties ?? {};
+  const properties = feature.properties ?? {};
 
   return (
-    properties.name ??
-    properties.NAME ??
-    properties.shapeName ??
     properties.NUTS_NAME ??
-    properties.na ??
+    properties.NAME_LATN ??
+    properties.NUTS_ID ??
+    properties.NAME ??
+    properties.st_nm ??
+    properties.STATE ??
+    properties.shapeName ??
+    properties.name ??
+    properties.admin ??
     ""
   );
 }
 
-function getFeatureCode(
-  mapFeature: MapFeature
+function getFeatureCountry(
+  feature: MapFeature
 ) {
-  const properties =
-    mapFeature.properties ?? {};
+  const properties = feature.properties ?? {};
 
   return (
-    properties.NUTS_ID ??
-    properties.shapeISO ??
-    properties.shapeID ??
-    properties.id ??
+    properties.admin ??
+    properties.sovereign ??
+    properties.shapeGroup ??
+    properties.adm0_a3 ??
     ""
   );
+}
+
+function classifyFeature(
+  feature: MapFeature
+): RegionLevel | null {
+  const name = normalizeName(
+    getFeatureName(feature)
+  );
+
+  const properties = feature.properties ?? {};
+
+  const nutsId = normalizeName(
+    properties.NUTS_ID ?? ""
+  );
+
+  if (US_STATES.has(name)) {
+    return "us_states";
+  }
+
+  if (CANADA_PROVINCES.has(name)) {
+    return "canada_provinces";
+  }
+
+  if (CHINA_REGIONS.has(name)) {
+    return "china_regions";
+  }
+
+  if (INDIA_STATES.has(name)) {
+    return "india_states";
+  }
+
+  if (
+    properties.NUTS_ID ||
+    properties.NUTS_NAME ||
+    nutsId.startsWith("eu")
+  ) {
+    return "eu_regions";
+  }
+
+  return "countries";
 }
 
 function formatValue(
@@ -371,46 +462,29 @@ function formatValue(
     return "No data";
   }
 
-  const absolute =
-    Math.abs(value);
+  const absolute = Math.abs(value);
 
-  if (
-    absolute >=
-    1_000_000_000_000
-  ) {
+  if (absolute >= 1_000_000_000_000) {
     return `${(
-      value /
-      1_000_000_000_000
+      value / 1_000_000_000_000
     ).toFixed(2)}T`;
   }
 
-  if (
-    absolute >=
-    1_000_000_000
-  ) {
+  if (absolute >= 1_000_000_000) {
     return `${(
-      value /
-      1_000_000_000
+      value / 1_000_000_000
     ).toFixed(2)}B`;
   }
 
-  if (
-    absolute >=
-    1_000_000
-  ) {
+  if (absolute >= 1_000_000) {
     return `${(
-      value /
-      1_000_000
+      value / 1_000_000
     ).toFixed(2)}M`;
   }
 
-  if (
-    absolute >=
-    1_000
-  ) {
+  if (absolute >= 1_000) {
     return `${(
-      value /
-      1_000
+      value / 1_000
     ).toFixed(2)}K`;
   }
 
@@ -436,9 +510,7 @@ function getColor(
 
   if (maximum <= minimum) {
     return COLORS[
-      Math.floor(
-        COLORS.length / 2
-      )
+      Math.floor(COLORS.length / 2)
     ];
   }
 
@@ -446,255 +518,187 @@ function getColor(
     (value - minimum) /
     (maximum - minimum);
 
-  const index =
-    Math.max(
-      0,
-      Math.min(
-        COLORS.length - 1,
-        Math.floor(
-          ratio *
-            COLORS.length
-        )
+  const index = Math.max(
+    0,
+    Math.min(
+      COLORS.length - 1,
+      Math.floor(
+        ratio * COLORS.length
       )
-    );
+    )
+  );
 
   return COLORS[index];
 }
 
-function getGeoJsonUrlFromBoundaryResponse(
-  json: any
-): string | null {
-  if (!json) {
-    return null;
-  }
-
-  if (
-    typeof json ===
-    "object"
-  ) {
-    if (
-      typeof json.simplifiedGeometryGeoJSON ===
-      "string"
-    ) {
-      return json.simplifiedGeometryGeoJSON;
-    }
-
-    if (
-      typeof json.gjDownloadURL ===
-      "string"
-    ) {
-      return json.gjDownloadURL;
-    }
-
-    if (
-      typeof json.geojson ===
-      "string"
-    ) {
-      return json.geojson;
-    }
-  }
-
-  if (
-    Array.isArray(json) &&
-    json.length > 0
-  ) {
-    return (
-      getGeoJsonUrlFromBoundaryResponse(
-        json[0]
-      )
-    );
-  }
-
-  return null;
-}
-
-function getRegionNameFromObservation(
-  value: string
-) {
-  return normalizeName(value);
-}
+const REGION_LABELS: Record<
+  RegionLevel,
+  string
+> = {
+  countries: "Countries",
+  us_states: "US states",
+  canada_provinces: "Canadian provinces",
+  china_regions: "Chinese regions",
+  india_states: "Indian states",
+  eu_regions: "EU regions",
+};
 
 function Map() {
-  const [
-    countries,
-    setCountries,
-  ] =
+  const [mapCollection, setMapCollection] =
+    useState<MapCollection | null>(null);
+
+  const [countries, setCountries] =
     useState<Country[]>([]);
 
-  const [
-    indicators,
-    setIndicators,
-  ] =
+  const [indicators, setIndicators] =
     useState<Indicator[]>([]);
 
-  const [
-    observations,
-    setObservations,
-  ] =
+  const [observations, setObservations] =
     useState<Observation[]>([]);
 
-  const [
-    selectedIndicator,
-    setSelectedIndicator,
-  ] =
+  const [selectedIndicator, setSelectedIndicator] =
     useState("");
 
-  const [
-    selectedYear,
-    setSelectedYear,
-  ] =
+  const [selectedYear, setSelectedYear] =
     useState(2024);
 
-  const [
-    mapLevel,
-    setMapLevel,
-  ] =
-    useState<MapLevel>(
-      "standard"
-    );
+  const [regionLevel, setRegionLevel] =
+    useState<RegionLevel>("countries");
 
-  const [
-    hoveredArea,
-    setHoveredArea,
-  ] =
-    useState<string | null>(
-      null
-    );
+  const [hoveredFeature, setHoveredFeature] =
+    useState<string | null>(null);
 
-  const [
-    loadingMetadata,
-    setLoadingMetadata,
-  ] =
+  const [loadingMetadata, setLoadingMetadata] =
     useState(true);
 
-  const [
-    loadingData,
-    setLoadingData,
-  ] =
+  const [loadingMap, setLoadingMap] =
+    useState(true);
+
+  const [loadingData, setLoadingData] =
     useState(false);
 
-  const [
-    loadingGeometry,
-    setLoadingGeometry,
-  ] =
-    useState(false);
-
-  const [
-    error,
-    setError,
-  ] =
+  const [error, setError] =
     useState("");
 
-  const [
-    zoom,
-    setZoom,
-  ] =
+  const [zoom, setZoom] =
     useState(1);
 
-  const [
-    pan,
-    setPan,
-  ] =
+  const [pan, setPan] =
     useState({
       x: 0,
       y: 0,
     });
 
-  const [
-    isDragging,
-    setIsDragging,
-  ] =
+  const [isDragging, setIsDragging] =
     useState(false);
 
-  const [
-    subnationalFeatures,
-    setSubnationalFeatures,
-  ] =
-    useState<
-      MapFeature[]
-    >([]);
-
-  const dragStart =
-    useRef({
-      x: 0,
-      y: 0,
-      panX: 0,
-      panY: 0,
-    });
+  const dragStart = useRef({
+    x: 0,
+    y: 0,
+    panX: 0,
+    panY: 0,
+  });
 
   const mapRef =
-    useRef<HTMLDivElement>(
-      null
-    );
+    useRef<HTMLDivElement>(null);
 
   /*
    * ---------------------------------------------------------
-   * PROJECTION
+   * LOAD THE COMBINED GEOJSON
    * ---------------------------------------------------------
    *
-   * We continue using Natural Earth for the global country
-   * map. Subnational layers use the same longitude/latitude
-   * coordinate system and therefore can be projected by the
-   * same d3 projection.
+   * IMPORTANT:
+   * The GeoJSON is in /public, so we DO NOT import it.
+   *
+   * The browser requests:
+   *
+   * /Combinedwitheuregions.geojson
+   *
+   * Vite/React serves files inside public directly.
    */
-  const projection =
-    useMemo<GeoProjection>(() => {
-      return geoNaturalEarth1().fitSize(
-        [
-          MAP_WIDTH,
-          MAP_HEIGHT,
-        ],
-        countryCollection
-      );
-    }, []);
+  useEffect(() => {
+    let cancelled = false;
 
-  const pathGenerator =
-    useMemo(() => {
-      return geoPath(
-        projection
-      );
-    }, [projection]);
+    async function loadGeoJson() {
+      try {
+        setLoadingMap(true);
 
-  /*
-   * ---------------------------------------------------------
-   * LOAD METADATA
-   * ---------------------------------------------------------
-   */
+        const response =
+          await fetch(GEOJSON_URL);
+
+        if (!response.ok) {
+          throw new Error(
+            `Could not load ${GEOJSON_URL}.`
+          );
+        }
+
+        const json =
+          (await response.json()) as MapCollection;
+
+        if (cancelled) {
+          return;
+        }
+
+        if (
+          json.type !==
+            "FeatureCollection" ||
+          !Array.isArray(json.features)
+        ) {
+          throw new Error(
+            "The GeoJSON file is not a valid FeatureCollection."
+          );
+        }
+
+        setMapCollection(json);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Could not load map geometry."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingMap(false);
+        }
+      }
+    }
+
+    loadGeoJson();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
     async function loadMetadata() {
       try {
-        setLoadingMetadata(
-          true
-        );
-
+        setLoadingMetadata(true);
         setError("");
 
         const [
           countriesResponse,
           indicatorsResponse,
-        ] =
-          await Promise.all([
-            fetch(
-              `${API}/countries?limit=500`
-            ),
-            fetch(
-              `${API}/indicators?limit=500`
-            ),
-          ]);
+        ] = await Promise.all([
+          fetch(
+            `${API}/countries?limit=500`
+          ),
+          fetch(
+            `${API}/indicators?limit=500`
+          ),
+        ]);
 
-        if (
-          !countriesResponse.ok
-        ) {
+        if (!countriesResponse.ok) {
           throw new Error(
             "Could not load countries."
           );
         }
 
-        if (
-          !indicatorsResponse.ok
-        ) {
+        if (!indicatorsResponse.ok) {
           throw new Error(
             "Could not load indicators."
           );
@@ -710,38 +714,24 @@ function Map() {
           return;
         }
 
-        const countryRows:
-          Country[] =
-          Array.isArray(
-            countriesJson
-          )
+        const countryRows: Country[] =
+          Array.isArray(countriesJson)
             ? countriesJson
             : countriesJson?.results ??
               countriesJson?.data ??
               [];
 
-        const indicatorRows:
-          Indicator[] =
-          Array.isArray(
-            indicatorsJson
-          )
+        const indicatorRows: Indicator[] =
+          Array.isArray(indicatorsJson)
             ? indicatorsJson
             : indicatorsJson?.results ??
               indicatorsJson?.data ??
               [];
 
-        setCountries(
-          countryRows
-        );
+        setCountries(countryRows);
+        setIndicators(indicatorRows);
 
-        setIndicators(
-          indicatorRows
-        );
-
-        if (
-          indicatorRows.length >
-          0
-        ) {
+        if (indicatorRows.length > 0) {
           setSelectedIndicator(
             indicatorRows[0].code
           );
@@ -756,9 +746,7 @@ function Map() {
         }
       } finally {
         if (!cancelled) {
-          setLoadingMetadata(
-            false
-          );
+          setLoadingMetadata(false);
         }
       }
     }
@@ -772,196 +760,19 @@ function Map() {
 
   /*
    * ---------------------------------------------------------
-   * LOAD GEOMETRY
-   * ---------------------------------------------------------
-   */
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadGeometry() {
-      /*
-       * Standard / grouped uses world countries.
-       */
-      if (
-        mapLevel ===
-          "standard" ||
-        mapLevel ===
-          "grouped"
-      ) {
-        setSubnationalFeatures(
-          []
-        );
-
-        setLoadingGeometry(
-          false
-        );
-
-        return;
-      }
-
-      try {
-        setLoadingGeometry(
-          true
-        );
-
-        setError("");
-
-        /*
-         * STATES
-         *
-         * Load the four requested ADM1 countries.
-         */
-        if (
-          mapLevel ===
-          "states"
-        ) {
-          const results =
-            await Promise.all(
-              STATE_SOURCES.map(
-                async (
-                  source
-                ) => {
-                  try {
-                    const metadataResponse =
-                      await fetch(
-                        source.url
-                      );
-
-                    if (
-                      !metadataResponse.ok
-                    ) {
-                      return [];
-                    }
-
-                    const metadata =
-                      await metadataResponse.json();
-
-                    const geoJsonUrl =
-                      getGeoJsonUrlFromBoundaryResponse(
-                        metadata
-                      );
-
-                    if (
-                      !geoJsonUrl
-                    ) {
-                      return [];
-                    }
-
-                    const geoResponse =
-                      await fetch(
-                        geoJsonUrl
-                      );
-
-                    if (
-                      !geoResponse.ok
-                    ) {
-                      return [];
-                    }
-
-                    const geoJson =
-                      (await geoResponse.json()) as MapFeatureCollection;
-
-                    return Array.isArray(
-                      geoJson.features
-                    )
-                      ? geoJson.features
-                      : [];
-                  } catch {
-                    return [];
-                  }
-                }
-              )
-            );
-
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-          setSubnationalFeatures(
-            results.flat()
-          );
-
-          return;
-        }
-
-        /*
-         * REGIONS
-         *
-         * NUTS2 covers European regions.
-         */
-        if (
-          mapLevel ===
-          "regions"
-        ) {
-          const response =
-            await fetch(
-              EU_REGIONS_URL
-            );
-
-          if (
-            !response.ok
-          ) {
-            throw new Error(
-              "Could not load European regional boundaries."
-            );
-          }
-
-          const json =
-            (await response.json()) as MapFeatureCollection;
-
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-          setSubnationalFeatures(
-            Array.isArray(
-              json.features
-            )
-              ? json.features
-              : []
-          );
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setSubnationalFeatures(
-            []
-          );
-
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Could not load regional boundaries."
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingGeometry(
-            false
-          );
-        }
-      }
-    }
-
-    loadGeometry();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [mapLevel]);
-
-  /*
-   * ---------------------------------------------------------
    * LOAD INDICATOR DATA
    * ---------------------------------------------------------
+   *
+   * We intentionally use the names returned by /countries.
+   *
+   * This is why California can exist in GDP_COM even though
+   * the endpoint /data/California/GDP_COM may not exist.
+   *
+   * The map is therefore not assuming that every observation
+   * has a country-level API endpoint.
    */
   useEffect(() => {
-    if (
-      !selectedIndicator
-    ) {
+    if (!selectedIndicator) {
       setObservations([]);
       return;
     }
@@ -970,235 +781,43 @@ function Map() {
 
     async function loadIndicatorData() {
       try {
-        setLoadingData(
-          true
-        );
-
+        setLoadingData(true);
         setError("");
 
-        /*
-         * ---------------------------------------------------
-         * COUNTRY LEVEL
-         * ---------------------------------------------------
-         */
-        if (
-          mapLevel ===
-            "standard" ||
-          mapLevel ===
-            "grouped"
-        ) {
-          const countryNames =
-            countries
-              .map(
-                (country) =>
-                  country.name ??
-                  country.country_name ??
-                  country.code ??
-                  country.iso3 ??
-                  ""
-              )
-              .filter(Boolean);
-
-          const responses =
-            await Promise.all(
-              countryNames.map(
-                async (
-                  country
-                ) => {
-                  try {
-                    const response =
-                      await fetch(
-                        `${API}/data/${encodeURIComponent(
-                          country
-                        )}/${encodeURIComponent(
-                          selectedIndicator
-                        )}`
-                      );
-
-                    if (
-                      !response.ok
-                    ) {
-                      return [];
-                    }
-
-                    const json =
-                      await response.json();
-
-                    return Array.isArray(
-                      json
-                    )
-                      ? json
-                      : json?.results ??
-                        json?.data ??
-                        [];
-                  } catch {
-                    return [];
-                  }
-                }
-              )
-            );
-
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-          const rows:
-            Observation[] =
-            [];
-
-          countryNames.forEach(
-            (
-              country,
-              index
-            ) => {
-              const result =
-                responses[index];
-
-              if (
-                !Array.isArray(
-                  result
-                )
-              ) {
-                return;
-              }
-
-              result.forEach(
-                (row: any) => {
-                  const year =
-                    Number(
-                      row?.year
-                    );
-
-                  const value =
-                    Number(
-                      row?.value
-                    );
-
-                  if (
-                    Number.isFinite(
-                      year
-                    ) &&
-                    Number.isFinite(
-                      value
-                    )
-                  ) {
-                    rows.push({
-                      country,
-                      indicator:
-                        selectedIndicator,
-                      year,
-                      value,
-                    });
-                  }
-                }
-              );
-            }
-          );
-
-          setObservations(
-            rows
-          );
-
-          const years =
-            Array.from(
-              new Set(
-                rows.map(
-                  (row) =>
-                    row.year
-                )
-              )
-            ).sort(
-              (a, b) =>
-                a - b
-            );
-
-          if (
-            years.length >
-            0
-          ) {
-            setSelectedYear(
-              (current) =>
-                years.includes(
-                  current
-                )
-                  ? current
-                  : years[
-                      years.length -
-                        1
-                    ]
-            );
-          }
-
-          return;
-        }
-
-        /*
-         * ---------------------------------------------------
-         * SUBNATIONAL LEVEL
-         * ---------------------------------------------------
-         *
-         * We use the geometry names as the entities to query.
-         *
-         * This assumes your API stores the subnational
-         * observations using the same or approximately the
-         * same names.
-         */
-        const areaNames =
-          Array.from(
-            new Set(
-              subnationalFeatures
-                .map(
-                  (
-                    mapFeature
-                  ) =>
-                    getFeatureName(
-                      mapFeature
-                    )
-                )
-                .filter(Boolean)
+        const geographicNames =
+          countries
+            .map(
+              (country) =>
+                country.name ??
+                country.country_name ??
+                country.code ??
+                country.iso3 ??
+                ""
             )
-          );
-
-        if (
-          areaNames.length ===
-          0
-        ) {
-          setObservations(
-            []
-          );
-          return;
-        }
+            .filter(Boolean);
 
         const responses =
           await Promise.all(
-            areaNames.map(
-              async (
-                area
-              ) => {
+            geographicNames.map(
+              async (geographicName) => {
                 try {
                   const response =
                     await fetch(
                       `${API}/data/${encodeURIComponent(
-                        area
+                        geographicName
                       )}/${encodeURIComponent(
                         selectedIndicator
                       )}`
                     );
 
-                  if (
-                    !response.ok
-                  ) {
+                  if (!response.ok) {
                     return [];
                   }
 
                   const json =
                     await response.json();
 
-                  return Array.isArray(
-                    json
-                  )
+                  return Array.isArray(json)
                     ? json
                     : json?.results ??
                       json?.data ??
@@ -1210,54 +829,36 @@ function Map() {
             )
           );
 
-        if (
-          cancelled
-        ) {
+        if (cancelled) {
           return;
         }
 
-        const rows:
-          Observation[] =
-          [];
+        const rows: Observation[] = [];
 
-        areaNames.forEach(
-          (
-            area,
-            index
-          ) => {
+        geographicNames.forEach(
+          (geographicName, index) => {
             const result =
               responses[index];
 
-            if (
-              !Array.isArray(
-                result
-              )
-            ) {
+            if (!Array.isArray(result)) {
               return;
             }
 
             result.forEach(
               (row: any) => {
                 const year =
-                  Number(
-                    row?.year
-                  );
+                  Number(row?.year);
 
                 const value =
-                  Number(
-                    row?.value
-                  );
+                  Number(row?.value);
 
                 if (
-                  Number.isFinite(
-                    year
-                  ) &&
-                  Number.isFinite(
-                    value
-                  )
+                  Number.isFinite(year) &&
+                  Number.isFinite(value)
                 ) {
                   rows.push({
-                    country: area,
+                    country:
+                      geographicName,
                     indicator:
                       selectedIndicator,
                     year,
@@ -1269,37 +870,24 @@ function Map() {
           }
         );
 
-        setObservations(
-          rows
+        setObservations(rows);
+
+        const years = Array.from(
+          new Set(
+            rows.map(
+              (row) => row.year
+            )
+          )
+        ).sort(
+          (a, b) => a - b
         );
 
-        const years =
-          Array.from(
-            new Set(
-              rows.map(
-                (row) =>
-                  row.year
-              )
-            )
-          ).sort(
-            (a, b) =>
-              a - b
-          );
-
-        if (
-          years.length >
-          0
-        ) {
+        if (years.length > 0) {
           setSelectedYear(
             (current) =>
-              years.includes(
-                current
-              )
+              years.includes(current)
                 ? current
-                : years[
-                    years.length -
-                      1
-                  ]
+                : years[years.length - 1]
           );
         }
       } catch (err) {
@@ -1310,15 +898,11 @@ function Map() {
               : "Could not load map data."
           );
 
-          setObservations(
-            []
-          );
+          setObservations([]);
         }
       } finally {
         if (!cancelled) {
-          setLoadingData(
-            false
-          );
+          setLoadingData(false);
         }
       }
     }
@@ -1331,29 +915,19 @@ function Map() {
   }, [
     countries,
     selectedIndicator,
-    mapLevel,
-    subnationalFeatures,
   ]);
 
-  /*
-   * ---------------------------------------------------------
-   * AVAILABLE YEARS
-   * ---------------------------------------------------------
-   */
   const availableYears =
     useMemo(() => {
       return Array.from(
         new Set(
           observations.map(
-            (
-              observation
-            ) =>
+            (observation) =>
               observation.year
           )
         )
       ).sort(
-        (a, b) =>
-          a - b
+        (a, b) => a - b
       );
     }, [observations]);
 
@@ -1364,12 +938,74 @@ function Map() {
         selectedIndicator
     );
 
+  /*
+   * ---------------------------------------------------------
+   * FILTER GEOJSON FEATURES
+   * ---------------------------------------------------------
+   */
+  const visibleFeatures =
+    useMemo(() => {
+      if (!mapCollection) {
+        return [];
+      }
+
+      return mapCollection.features.filter(
+        (mapFeature) =>
+          classifyFeature(
+            mapFeature
+          ) === regionLevel
+      );
+    }, [
+      mapCollection,
+      regionLevel,
+    ]);
+
+  /*
+   * Fit the projection to the selected geography.
+   *
+   * Countries -> entire world
+   * US states -> USA
+   * Canadian provinces -> Canada
+   * Chinese regions -> China
+   * Indian states -> India
+   * EU regions -> Europe
+   */
+  const projection =
+    useMemo<GeoProjection | null>(() => {
+      if (
+        !mapCollection ||
+        visibleFeatures.length === 0
+      ) {
+        return null;
+      }
+
+      const collection: MapCollection = {
+        type: "FeatureCollection",
+        features: visibleFeatures,
+      };
+
+      return geoNaturalEarth1().fitSize(
+        [MAP_WIDTH, MAP_HEIGHT],
+        collection
+      );
+    }, [
+      mapCollection,
+      visibleFeatures,
+    ]);
+
+  const pathGenerator =
+    useMemo(() => {
+      if (!projection) {
+        return null;
+      }
+
+      return geoPath(projection);
+    }, [projection]);
+
   const selectedYearObservations =
     useMemo(() => {
       return observations.filter(
-        (
-          observation
-        ) =>
+        (observation) =>
           observation.year ===
           selectedYear
       );
@@ -1381,40 +1017,25 @@ function Map() {
   const values =
     selectedYearObservations
       .map(
-        (
-          observation
-        ) =>
+        (observation) =>
           observation.value
       )
       .filter(
-        (
-          value
-        ) =>
-          Number.isFinite(
-            value
-          )
+        (value) =>
+          Number.isFinite(value)
       );
 
   const minimum =
     values.length > 0
-      ? Math.min(
-          ...values
-        )
+      ? Math.min(...values)
       : 0;
 
   const maximum =
     values.length > 0
-      ? Math.max(
-          ...values
-        )
+      ? Math.max(...values)
       : 1;
 
-  /*
-   * ---------------------------------------------------------
-   * VALUE LOOKUP
-   * ---------------------------------------------------------
-   */
-  const areaValueMap =
+  const valueLookup =
     useMemo(() => {
       const lookup =
         new globalThis.Map<
@@ -1423,9 +1044,7 @@ function Map() {
         >();
 
       selectedYearObservations.forEach(
-        (
-          observation
-        ) => {
+        (observation) => {
           lookup.set(
             normalizeName(
               observation.country
@@ -1440,190 +1059,85 @@ function Map() {
       selectedYearObservations,
     ]);
 
-  function getAreaValue(
-    areaName: string
+  function getFeatureValue(
+    mapFeature: MapFeature
   ) {
+    const featureName =
+      getFeatureName(mapFeature);
+
+    /*
+     * For country maps, match directly against
+     * the feature's country name.
+     */
     const direct =
-      areaValueMap.get(
-        normalizeName(
-          areaName
-        )
+      valueLookup.get(
+        normalizeName(featureName)
       );
 
-    if (
-      direct !==
-      undefined
-    ) {
+    if (direct !== undefined) {
       return direct;
     }
 
     /*
-     * Country aliases only matter for the world map.
+     * For regional maps the observation name itself
+     * is what we want.
      */
-    if (
-      mapLevel ===
-        "standard" ||
-      mapLevel ===
-        "grouped"
-    ) {
-      const matchingObservation =
-        selectedYearObservations.find(
-          (
-            observation
-          ) =>
-            countryNamesMatch(
-              observation.country,
-              areaName
-            )
-        );
-
-      return (
-        matchingObservation?.value ??
-        null
+    const matchingObservation =
+      selectedYearObservations.find(
+        (observation) =>
+          countryNamesMatch(
+            observation.country,
+            featureName
+          )
       );
+
+    if (matchingObservation) {
+      return matchingObservation.value;
     }
 
-    /*
-     * For subnational maps we also allow a loose
-     * normalized comparison.
-     */
-    const normalized =
-      normalizeName(
-        areaName
-      );
-
-    const matching =
-      selectedYearObservations.find(
-        (
-          observation
-        ) =>
-          getRegionNameFromObservation(
-            observation.country
-          ) ===
-          normalized
-      );
-
-    return (
-      matching?.value ??
-      null
-    );
+    return null;
   }
 
-  /*
-   * ---------------------------------------------------------
-   * COUNTRY PATHS
-   * ---------------------------------------------------------
-   */
-  const countryPathData =
+  const mapPathData =
     useMemo(() => {
-      return countryCollection.features
-        .map(
-          (
-            mapFeature
-          ) => {
-            const name =
-              getFeatureName(
-                mapFeature
-              );
+      if (!pathGenerator) {
+        return [];
+      }
 
-            const path =
-              pathGenerator(
-                mapFeature
-              ) ?? "";
+      return visibleFeatures
+        .map((mapFeature) => {
+          const name =
+            getFeatureName(
+              mapFeature
+            );
 
-            return {
-              feature:
-                mapFeature,
-              name,
-              code:
-                getFeatureCode(
-                  mapFeature
-                ),
-              path,
-            };
-          }
-        )
+          const path =
+            pathGenerator(
+              mapFeature
+            ) ?? "";
+
+          return {
+            feature: mapFeature,
+            name,
+            path,
+          };
+        })
         .filter(
-          (
-            item
-          ) =>
+          (item) =>
             item.name &&
             item.path
         );
     }, [
       pathGenerator,
+      visibleFeatures,
     ]);
 
   /*
    * ---------------------------------------------------------
-   * SUBNATIONAL PATHS
+   * MAP CONTROLS
    * ---------------------------------------------------------
    */
-  const subnationalPathData =
-    useMemo(() => {
-      return subnationalFeatures
-        .map(
-          (
-            mapFeature
-          ) => {
-            const name =
-              getFeatureName(
-                mapFeature
-              );
 
-            const code =
-              getFeatureCode(
-                mapFeature
-              );
-
-            const path =
-              pathGenerator(
-                mapFeature
-              ) ?? "";
-
-            return {
-              feature:
-                mapFeature,
-              name,
-              code,
-              path,
-            };
-          }
-        )
-        .filter(
-          (
-            item
-          ) =>
-            item.name &&
-            item.path
-        );
-    }, [
-      subnationalFeatures,
-      pathGenerator,
-    ]);
-
-  /*
-   * ---------------------------------------------------------
-   * MAP LABEL
-   * ---------------------------------------------------------
-   */
-  const levelLabel =
-    mapLevel ===
-    "standard"
-      ? "Countries"
-      : mapLevel ===
-        "grouped"
-      ? "Grouped"
-      : mapLevel ===
-        "states"
-      ? "States & provinces"
-      : "European regions";
-
-  /*
-   * ---------------------------------------------------------
-   * RESET / ZOOM
-   * ---------------------------------------------------------
-   */
   function resetMap() {
     setZoom(1);
 
@@ -1634,43 +1148,38 @@ function Map() {
   }
 
   function zoomIn() {
-    setZoom(
-      (current) =>
-        Math.min(
-          3,
-          current + 0.25
-        )
+    setZoom((current) =>
+      Math.min(
+        3,
+        current + 0.25
+      )
     );
   }
 
   function zoomOut() {
-    setZoom(
-      (current) =>
-        Math.max(
-          1,
-          current - 0.25
-        )
+    setZoom((current) =>
+      Math.max(
+        1,
+        current - 0.25
+      )
     );
   }
 
   /*
-   * ---------------------------------------------------------
-   * POINTER DRAG
-   * ---------------------------------------------------------
+   * Reset zoom when changing geography level.
    */
+  useEffect(() => {
+    resetMap();
+  }, [regionLevel]);
+
   function handlePointerDown(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    if (
-      event.button !==
-      0
-    ) {
+    if (event.button !== 0) {
       return;
     }
 
-    setIsDragging(
-      true
-    );
+    setIsDragging(true);
 
     dragStart.current = {
       x: event.clientX,
@@ -1687,9 +1196,7 @@ function Map() {
   function handlePointerMove(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    if (
-      !isDragging
-    ) {
+    if (!isDragging) {
       return;
     }
 
@@ -1716,8 +1223,8 @@ function Map() {
         -maxPanX,
         Math.min(
           maxPanX,
-          dragStart.current
-            .panX + dx
+          dragStart.current.panX +
+            dx
         )
       ),
 
@@ -1725,8 +1232,8 @@ function Map() {
         -maxPanY,
         Math.min(
           maxPanY,
-          dragStart.current
-            .panY + dy
+          dragStart.current.panY +
+            dy
         )
       ),
     });
@@ -1735,9 +1242,7 @@ function Map() {
   function handlePointerUp(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    setIsDragging(
-      false
-    );
+    setIsDragging(false);
 
     if (
       event.currentTarget.hasPointerCapture(
@@ -1750,15 +1255,8 @@ function Map() {
     }
   }
 
-  /*
-   * ---------------------------------------------------------
-   * DOWNLOAD
-   * ---------------------------------------------------------
-   */
   async function downloadMap() {
-    if (
-      !mapRef.current
-    ) {
+    if (!mapRef.current) {
       return;
     }
 
@@ -1786,37 +1284,28 @@ function Map() {
             `<?xml version="1.0" encoding="UTF-8"?>${source}`,
           ],
           {
-            type:
-              "image/svg+xml",
+            type: "image/svg+xml",
           }
         );
 
       const url =
-        URL.createObjectURL(
-          blob
-        );
+        URL.createObjectURL(blob);
 
       const link =
-        document.createElement(
-          "a"
-        );
+        document.createElement("a");
 
       link.href = url;
 
       link.download =
-        `worlddata-${mapLevel}-${selectedIndicator}-${selectedYear}.svg`;
+        `worlddata-${selectedIndicator}-${regionLevel}-${selectedYear}.svg`;
 
-      document.body.appendChild(
-        link
-      );
+      document.body.appendChild(link);
 
       link.click();
 
       link.remove();
 
-      URL.revokeObjectURL(
-        url
-      );
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error(
         "Could not download map",
@@ -1827,11 +1316,13 @@ function Map() {
 
   /*
    * ---------------------------------------------------------
-   * LOADING
+   * LOADING STATE
    * ---------------------------------------------------------
    */
+
   if (
-    loadingMetadata
+    loadingMetadata ||
+    loadingMap
   ) {
     return (
       <section className="map-page">
@@ -1847,9 +1338,9 @@ function Map() {
    * RENDER
    * ---------------------------------------------------------
    */
+
   return (
     <section className="map-page">
-
       <div className="map-heading">
         <div>
           <div className="map-eyebrow">
@@ -1857,13 +1348,13 @@ function Map() {
           </div>
 
           <h1>
-            World map
+            Geographic map
           </h1>
 
           <p>
             Compare countries,
-            states and regions
-            across the world.
+            states, provinces and
+            regions across the world.
           </p>
         </div>
       </div>
@@ -1874,43 +1365,29 @@ function Map() {
             Unable to load data
           </strong>
 
-          <span>
-            {error}
-          </span>
+          <span>{error}</span>
         </div>
       )}
 
       <div className="map-controls">
-
-        {/* INDICATOR */}
-        <div className="map-control map-indicator-control">
+        <div className="map-control">
           <label>
             INDICATOR
           </label>
 
           <select
-            value={
-              selectedIndicator
-            }
-            onChange={(
-              event
-            ) =>
+            value={selectedIndicator}
+            onChange={(event) =>
               setSelectedIndicator(
                 event.target.value
               )
             }
           >
             {indicators.map(
-              (
-                item
-              ) => (
+              (item) => (
                 <option
-                  key={
-                    item.code
-                  }
-                  value={
-                    item.code
-                  }
+                  key={item.code}
+                  value={item.code}
                 >
                   {item.name ??
                     item.code}
@@ -1920,19 +1397,48 @@ function Map() {
           </select>
         </div>
 
-        {/* YEAR */}
+        <div className="map-control">
+          <label>
+            GEOGRAPHY
+          </label>
+
+          <select
+            value={regionLevel}
+            onChange={(event) =>
+              setRegionLevel(
+                event.target.value as RegionLevel
+              )
+            }
+          >
+            {(
+              Object.keys(
+                REGION_LABELS
+              ) as RegionLevel[]
+            ).map(
+              (level) => (
+                <option
+                  key={level}
+                  value={level}
+                >
+                  {
+                    REGION_LABELS[
+                      level
+                    ]
+                  }
+                </option>
+              )
+            )}
+          </select>
+        </div>
+
         <div className="map-control">
           <label>
             YEAR
           </label>
 
           <select
-            value={
-              selectedYear
-            }
-            onChange={(
-              event
-            ) =>
+            value={selectedYear}
+            onChange={(event) =>
               setSelectedYear(
                 Number(
                   event.target.value
@@ -1941,16 +1447,10 @@ function Map() {
             }
           >
             {availableYears.map(
-              (
-                year
-              ) => (
+              (year) => (
                 <option
-                  key={
-                    year
-                  }
-                  value={
-                    year
-                  }
+                  key={year}
+                  value={year}
                 >
                   {year}
                 </option>
@@ -1959,90 +1459,9 @@ function Map() {
           </select>
         </div>
 
-        {/* LEVEL */}
-        <div className="map-control map-level-control">
-          <label>
-            GEOGRAPHY
-          </label>
-
-          <div className="map-level-toggle">
-            <button
-              type="button"
-              className={
-                mapLevel ===
-                "grouped"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMapLevel(
-                  "grouped"
-                )
-              }
-            >
-              Grouped
-            </button>
-
-            <button
-              type="button"
-              className={
-                mapLevel ===
-                "standard"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMapLevel(
-                  "standard"
-                )
-              }
-            >
-              Standard
-            </button>
-
-            <button
-              type="button"
-              className={
-                mapLevel ===
-                "states"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMapLevel(
-                  "states"
-                )
-              }
-            >
-              States
-            </button>
-
-            <button
-              type="button"
-              className={
-                mapLevel ===
-                "regions"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMapLevel(
-                  "regions"
-                )
-              }
-            >
-              Regions
-            </button>
-          </div>
-        </div>
-
-        {/* DATA COUNT */}
         <div className="map-control-info">
           <label>
-            {mapLevel ===
-            "standard"
-              ? "COUNTRIES WITH DATA"
-              : "AREAS WITH DATA"}
+            AREAS WITH DATA
           </label>
 
           <strong>
@@ -2054,15 +1473,11 @@ function Map() {
       </div>
 
       <div className="map-card">
-
         <div className="map-card-header">
-
           <div>
             <div className="map-card-eyebrow">
               {indicator?.category ??
                 "INDICATOR"}
-              {" · "}
-              {levelLabel}
             </div>
 
             <h2>
@@ -2071,6 +1486,12 @@ function Map() {
             </h2>
 
             <p>
+              {
+                REGION_LABELS[
+                  regionLevel
+                ]
+              }
+              {" · "}
               {selectedYear}
 
               {indicator?.unit
@@ -2080,22 +1501,14 @@ function Map() {
           </div>
 
           <div className="map-header-right">
-
             <div className="map-actions">
-
               <button
                 className="map-action-button"
-                onClick={
-                  zoomOut
-                }
-                disabled={
-                  zoom <= 1
-                }
+                onClick={zoomOut}
+                disabled={zoom <= 1}
                 title="Zoom out"
               >
-                <Minus
-                  size={15}
-                />
+                <Minus size={15} />
               </button>
 
               <span className="map-zoom-value">
@@ -2107,47 +1520,32 @@ function Map() {
 
               <button
                 className="map-action-button"
-                onClick={
-                  zoomIn
-                }
-                disabled={
-                  zoom >= 3
-                }
+                onClick={zoomIn}
+                disabled={zoom >= 3}
                 title="Zoom in"
               >
-                <Plus
-                  size={15}
-                />
+                <Plus size={15} />
               </button>
 
               <button
                 className="map-action-button"
-                onClick={
-                  resetMap
-                }
+                onClick={resetMap}
                 title="Reset map"
               >
-                <RotateCcw
-                  size={14}
-                />
+                <RotateCcw size={14} />
               </button>
 
               <button
                 className="map-download-button"
-                onClick={
-                  downloadMap
-                }
+                onClick={downloadMap}
                 title="Download map"
               >
-                <Download
-                  size={14}
-                />
+                <Download size={14} />
 
                 <span>
                   Download
                 </span>
               </button>
-
             </div>
 
             <div className="map-summary">
@@ -2165,7 +1563,6 @@ function Map() {
                 )}
               </strong>
             </div>
-
           </div>
         </div>
 
@@ -2189,11 +1586,9 @@ function Map() {
             handlePointerUp
           }
         >
-
-          {loadingData ||
-          loadingGeometry ? (
+          {loadingData ? (
             <div className="map-loading">
-              Loading map...
+              Loading map data...
             </div>
           ) : (
             <svg
@@ -2201,19 +1596,14 @@ function Map() {
               viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
               preserveAspectRatio="xMidYMid meet"
               role="img"
-              aria-label={`WorldData map showing ${
+              aria-label={`Map showing ${
                 indicator?.name ??
                 selectedIndicator
               } in ${selectedYear}`}
             >
-
               <rect
-                width={
-                  MAP_WIDTH
-                }
-                height={
-                  MAP_HEIGHT
-                }
+                width={MAP_WIDTH}
+                height={MAP_HEIGHT}
                 fill="#ffffff"
               />
 
@@ -2228,245 +1618,114 @@ function Map() {
                   MAP_HEIGHT / 2
                 })`}
               >
-
-                {/* WORLD COUNTRY BACKGROUND */}
-                {(mapLevel ===
-                  "standard" ||
-                  mapLevel ===
-                    "grouped" ||
-                  mapLevel ===
-                    "states" ||
-                  mapLevel ===
-                    "regions") &&
-                  countryPathData.map(
-                    ({
-                      name,
-                      path,
-                    }) => {
-                      const showCountry =
-                        mapLevel ===
-                          "standard" ||
-                        mapLevel ===
-                          "grouped";
-
-                      const value =
-                        showCountry
-                          ? getAreaValue(
-                              name
-                            )
-                          : null;
-
-                      return (
-                        <path
-                          key={`country-${name}`}
-                          d={path}
-                          fill={
-                            showCountry
-                              ? getColor(
-                                  value,
-                                  minimum,
-                                  maximum
-                                )
-                              : "#f8fafc"
-                          }
-                          stroke="#ffffff"
-                          strokeWidth={
-                            showCountry
-                              ? 0.55
-                              : 0.35
-                          }
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                          className={
-                            showCountry
-                              ? value ===
-                                null
-                                ? "map-country no-data"
-                                : "map-country"
-                              : "map-country-background"
-                          }
-                          onMouseEnter={() =>
-                            showCountry &&
-                            setHoveredArea(
-                              name
-                            )
-                          }
-                          onMouseLeave={() =>
-                            showCountry &&
-                            setHoveredArea(
-                              null
-                            )
-                          }
-                        />
+                {mapPathData.map(
+                  ({
+                    feature,
+                    name,
+                    path,
+                  }) => {
+                    const value =
+                      getFeatureValue(
+                        feature
                       );
-                    }
-                  )}
 
-                {/* STATES / PROVINCES */}
-                {mapLevel ===
-                  "states" &&
-                  subnationalPathData.map(
-                    ({
-                      name,
-                      code,
-                      path,
-                    }) => {
-                      const value =
-                        getAreaValue(
-                          name
-                        );
+                    const isHovered =
+                      hoveredFeature ===
+                      name;
 
-                      const isHovered =
-                        hoveredArea ===
-                        name;
-
-                      return (
-                        <path
-                          key={`state-${code}-${name}`}
-                          d={path}
-                          fill={getColor(
-                            value,
-                            minimum,
-                            maximum
-                          )}
-                          stroke={
-                            isHovered
-                              ? "#111827"
-                              : "#ffffff"
-                          }
-                          strokeWidth={
-                            isHovered
-                              ? 1.5
-                              : 0.7
-                          }
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                          className={
-                            value ===
+                    return (
+                      <path
+                        key={`${regionLevel}-${name}`}
+                        d={path}
+                        fill={getColor(
+                          value,
+                          minimum,
+                          maximum
+                        )}
+                        stroke={
+                          isHovered
+                            ? "#111827"
+                            : "#ffffff"
+                        }
+                        strokeWidth={
+                          isHovered
+                            ? 1.5
+                            : regionLevel ===
+                              "countries"
+                            ? 0.55
+                            : 0.8
+                        }
+                        strokeLinejoin="round"
+                        vectorEffect="non-scaling-stroke"
+                        className={
+                          value === null
+                            ? "map-country no-data"
+                            : "map-country"
+                        }
+                        onMouseEnter={() =>
+                          setHoveredFeature(
+                            name
+                          )
+                        }
+                        onMouseLeave={() =>
+                          setHoveredFeature(
                             null
-                              ? "map-region no-data"
-                              : "map-region"
-                          }
-                          onMouseEnter={() =>
-                            setHoveredArea(
-                              name
-                            )
-                          }
-                          onMouseLeave={() =>
-                            setHoveredArea(
-                              null
-                            )
-                          }
-                        />
-                      );
-                    }
-                  )}
-
-                {/* EUROPEAN REGIONS */}
-                {mapLevel ===
-                  "regions" &&
-                  subnationalPathData.map(
-                    ({
-                      name,
-                      code,
-                      path,
-                    }) => {
-                      const value =
-                        getAreaValue(
-                          name
-                        );
-
-                      const isHovered =
-                        hoveredArea ===
-                        name;
-
-                      return (
-                        <path
-                          key={`region-${code}-${name}`}
-                          d={path}
-                          fill={getColor(
-                            value,
-                            minimum,
-                            maximum
-                          )}
-                          stroke={
-                            isHovered
-                              ? "#111827"
-                              : "#ffffff"
-                          }
-                          strokeWidth={
-                            isHovered
-                              ? 1.5
-                              : 0.65
-                          }
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                          className={
-                            value ===
-                            null
-                              ? "map-region no-data"
-                              : "map-region"
-                          }
-                          onMouseEnter={() =>
-                            setHoveredArea(
-                              name
-                            )
-                          }
-                          onMouseLeave={() =>
-                            setHoveredArea(
-                              null
-                            )
-                          }
-                        />
-                      );
-                    }
-                  )}
-
+                          )
+                        }
+                      />
+                    );
+                  }
+                )}
               </g>
             </svg>
           )}
 
-          {hoveredArea && (
+          {hoveredFeature && (
             <div className="map-tooltip">
               <strong>
-                {hoveredArea}
+                {hoveredFeature}
               </strong>
 
               <span>
                 {formatValue(
-                  getAreaValue(
-                    hoveredArea
-                  )
+                  (() => {
+                    const observation =
+                      selectedYearObservations.find(
+                        (item) =>
+                          countryNamesMatch(
+                            item.country,
+                            hoveredFeature
+                          )
+                      );
+
+                    return (
+                      observation?.value ??
+                      null
+                    );
+                  })()
                 )}
               </span>
             </div>
           )}
 
-          {!loadingData &&
-            !loadingGeometry && (
-              <div className="map-hint">
-                Drag to move · + / − to zoom
-              </div>
-            )}
+          {!loadingData && (
+            <div className="map-hint">
+              Drag to move · + / − to zoom
+            </div>
+          )}
         </div>
 
         <div className="map-footer">
-
           <div className="map-legend">
-
             <span className="map-legend-label">
               LOW
             </span>
 
             <div className="map-legend-scale">
               {COLORS.map(
-                (
-                  color
-                ) => (
+                (color) => (
                   <span
-                    key={
-                      color
-                    }
+                    key={color}
                     style={{
                       backgroundColor:
                         color,
@@ -2479,11 +1738,9 @@ function Map() {
             <span className="map-legend-label">
               HIGH
             </span>
-
           </div>
 
           <div className="map-legend-values">
-
             <span>
               {formatValue(
                 minimum
@@ -2495,27 +1752,22 @@ function Map() {
                 maximum
               )}
             </span>
-
           </div>
-        </div>
-
-        <div className="map-source">
-          Administrative boundaries:
-          geoBoundaries Database ·
-          European regions:
-          Eurostat NUTS
         </div>
       </div>
 
       <div className="map-country-summary">
-
         <div>
           <span>
             GEOGRAPHY
           </span>
 
           <strong>
-            {levelLabel}
+            {
+              REGION_LABELS[
+                regionLevel
+              ]
+            }
           </strong>
         </div>
 
@@ -2546,12 +1798,9 @@ function Map() {
           </span>
 
           <strong>
-            {mapLevel ===
-              "standard" ||
-            mapLevel ===
-              "grouped"
-              ? countries.length
-              : subnationalFeatures.length}
+            {
+              visibleFeatures.length
+            }
           </strong>
         </div>
 
@@ -2566,9 +1815,7 @@ function Map() {
             }
           </strong>
         </div>
-
       </div>
-
     </section>
   );
 }
