@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { feature } from "topojson-client";
-import type { FeatureCollection, Geometry } from "geojson";
+import type {
+  Feature,
+  FeatureCollection,
+  Geometry,
+} from "geojson";
 import type { Topology } from "topojson-specification";
 import {
   geoNaturalEarth1,
@@ -17,6 +21,12 @@ import countriesTopology from "world-atlas/countries-110m.json";
 import "./Map.css";
 
 const API = "https://worlddataapi-kf6d.onrender.com";
+
+type MapLevel =
+  | "grouped"
+  | "standard"
+  | "states"
+  | "regions";
 
 type Country = {
   name?: string;
@@ -43,7 +53,34 @@ type Observation = {
 
 type MapProperties = {
   name?: string;
+  NAME?: string;
+  NAME_1?: string;
+  NAME_2?: string;
+  shapeName?: string;
+  shapeISO?: string;
+  shapeID?: string;
+  id?: string;
+  NUTS_ID?: string;
+  NUTS_NAME?: string;
+  na?: string;
   [key: string]: unknown;
+};
+
+type MapFeature = Feature<
+  Geometry,
+  MapProperties
+>;
+
+type MapFeatureCollection =
+  FeatureCollection<
+    Geometry,
+    MapProperties
+  >;
+
+type RegionSource = {
+  name: string;
+  iso3: string;
+  url: string;
 };
 
 const topology =
@@ -53,10 +90,7 @@ const countryCollection =
   feature(
     topology,
     topology.objects.countries
-  ) as unknown as FeatureCollection<
-    Geometry,
-    MapProperties
-  >;
+  ) as unknown as MapFeatureCollection;
 
 const MAP_WIDTH = 1000;
 const MAP_HEIGHT = 520;
@@ -74,95 +108,182 @@ const COLORS = [
   "#172554",
 ];
 
-const COUNTRY_ALIASES: Record<string, string[]> = {
+/*
+ * geoBoundaries ADM1 sources.
+ *
+ * ADM1 gives the first administrative level:
+ * USA -> states
+ * CAN -> provinces/territories
+ * CHN -> provinces/autonomous regions/municipalities
+ * IND -> states/union territories
+ *
+ * geoBoundaries provides programmatic access to ADM1
+ * GeoJSON layers.
+ */
+const STATE_SOURCES: RegionSource[] = [
+  {
+    name: "United States",
+    iso3: "USA",
+    url:
+      "https://www.geoboundaries.org/api/current/gbOpen/USA/ADM1/",
+  },
+  {
+    name: "Canada",
+    iso3: "CAN",
+    url:
+      "https://www.geoboundaries.org/api/current/gbOpen/CAN/ADM1/",
+  },
+  {
+    name: "China",
+    iso3: "CHN",
+    url:
+      "https://www.geoboundaries.org/api/current/gbOpen/CHN/ADM1/",
+  },
+  {
+    name: "India",
+    iso3: "IND",
+    url:
+      "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM1/",
+  },
+];
+
+/*
+ * Eurostat NUTS 2024, WGS84, 20M scale, NUTS2.
+ *
+ * NUTS2 is a good default for a WorldData-style map:
+ * detailed enough to be useful without becoming extremely
+ * heavy like NUTS3.
+ */
+const EU_REGIONS_URL =
+  "https://raw.githubusercontent.com/eurostat/Nuts2json/master/pub/v2/2024/4326/20M/nutsrg_2.json";
+
+/*
+ * Country aliases.
+ */
+const COUNTRY_ALIASES: Record<
+  string,
+  string[]
+> = {
   "united states": [
     "united states of america",
     "usa",
     "us",
   ],
+
   "united kingdom": [
     "uk",
     "great britain",
   ],
+
   russia: [
     "russian federation",
   ],
+
   "south korea": [
     "republic of korea",
     "korea republic of",
     "korea south",
   ],
+
   "north korea": [
     "democratic peoples republic of korea",
     "korea north",
   ],
+
   iran: [
     "iran islamic republic of",
     "islamic republic of iran",
   ],
+
   venezuela: [
     "venezuela bolivarian republic of",
   ],
+
   bolivia: [
     "bolivia plurinational state of",
   ],
+
   tanzania: [
     "united republic of tanzania",
   ],
+
   moldova: [
     "republic of moldova",
   ],
+
   vietnam: [
     "viet nam",
   ],
+
   laos: [
     "lao peoples democratic republic",
     "lao pdr",
   ],
+
   syria: [
     "syrian arab republic",
   ],
+
   brunei: [
     "brunei darussalam",
   ],
+
   czechia: [
     "czech republic",
   ],
+
   eswatini: [
     "swaziland",
   ],
+
   myanmar: [
     "burma",
   ],
+
   "cape verde": [
     "cabo verde",
   ],
+
   "ivory coast": [
     "cote divoire",
     "cote d ivoire",
   ],
+
   "democratic republic of the congo": [
     "democratic republic of congo",
     "dr congo",
     "drc",
   ],
+
   congo: [
     "republic of the congo",
     "congo republic",
   ],
+
   "north macedonia": [
     "macedonia",
     "former yugoslav republic of macedonia",
   ],
 };
 
-function normalizeName(value: string) {
+function normalizeName(
+  value: string
+) {
   return value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /&/g,
+      "and"
+    )
+    .replace(
+      /[^a-z0-9]+/g,
+      " "
+    )
     .trim();
 }
 
@@ -170,19 +291,24 @@ function countryNamesMatch(
   apiName: string,
   mapName: string
 ) {
-  const api = normalizeName(apiName);
-  const map = normalizeName(mapName);
+  const api =
+    normalizeName(apiName);
+
+  const map =
+    normalizeName(mapName);
 
   if (api === map) {
     return true;
   }
 
-  const aliases = COUNTRY_ALIASES[api];
+  const aliases =
+    COUNTRY_ALIASES[api];
 
   if (
     aliases?.some(
       (alias) =>
-        normalizeName(alias) === map
+        normalizeName(alias) ===
+        map
     )
   ) {
     return true;
@@ -194,13 +320,45 @@ function countryNamesMatch(
   if (
     reverseAliases?.some(
       (alias) =>
-        normalizeName(alias) === api
+        normalizeName(alias) ===
+        api
     )
   ) {
     return true;
   }
 
   return false;
+}
+
+function getFeatureName(
+  mapFeature: MapFeature
+) {
+  const properties =
+    mapFeature.properties ?? {};
+
+  return (
+    properties.name ??
+    properties.NAME ??
+    properties.shapeName ??
+    properties.NUTS_NAME ??
+    properties.na ??
+    ""
+  );
+}
+
+function getFeatureCode(
+  mapFeature: MapFeature
+) {
+  const properties =
+    mapFeature.properties ?? {};
+
+  return (
+    properties.NUTS_ID ??
+    properties.shapeISO ??
+    properties.shapeID ??
+    properties.id ??
+    ""
+  );
 }
 
 function formatValue(
@@ -213,29 +371,46 @@ function formatValue(
     return "No data";
   }
 
-  const absolute = Math.abs(value);
+  const absolute =
+    Math.abs(value);
 
-  if (absolute >= 1_000_000_000_000) {
+  if (
+    absolute >=
+    1_000_000_000_000
+  ) {
     return `${(
-      value / 1_000_000_000_000
+      value /
+      1_000_000_000_000
     ).toFixed(2)}T`;
   }
 
-  if (absolute >= 1_000_000_000) {
+  if (
+    absolute >=
+    1_000_000_000
+  ) {
     return `${(
-      value / 1_000_000_000
+      value /
+      1_000_000_000
     ).toFixed(2)}B`;
   }
 
-  if (absolute >= 1_000_000) {
+  if (
+    absolute >=
+    1_000_000
+  ) {
     return `${(
-      value / 1_000_000
+      value /
+      1_000_000
     ).toFixed(2)}M`;
   }
 
-  if (absolute >= 1_000) {
+  if (
+    absolute >=
+    1_000
+  ) {
     return `${(
-      value / 1_000
+      value /
+      1_000
     ).toFixed(2)}K`;
   }
 
@@ -261,7 +436,9 @@ function getColor(
 
   if (maximum <= minimum) {
     return COLORS[
-      Math.floor(COLORS.length / 2)
+      Math.floor(
+        COLORS.length / 2
+      )
     ];
   }
 
@@ -269,106 +446,255 @@ function getColor(
     (value - minimum) /
     (maximum - minimum);
 
-  const index = Math.max(
-    0,
-    Math.min(
-      COLORS.length - 1,
-      Math.floor(
-        ratio * COLORS.length
+  const index =
+    Math.max(
+      0,
+      Math.min(
+        COLORS.length - 1,
+        Math.floor(
+          ratio *
+            COLORS.length
+        )
       )
-    )
-  );
+    );
 
   return COLORS[index];
 }
 
+function getGeoJsonUrlFromBoundaryResponse(
+  json: any
+): string | null {
+  if (!json) {
+    return null;
+  }
+
+  if (
+    typeof json ===
+    "object"
+  ) {
+    if (
+      typeof json.simplifiedGeometryGeoJSON ===
+      "string"
+    ) {
+      return json.simplifiedGeometryGeoJSON;
+    }
+
+    if (
+      typeof json.gjDownloadURL ===
+      "string"
+    ) {
+      return json.gjDownloadURL;
+    }
+
+    if (
+      typeof json.geojson ===
+      "string"
+    ) {
+      return json.geojson;
+    }
+  }
+
+  if (
+    Array.isArray(json) &&
+    json.length > 0
+  ) {
+    return (
+      getGeoJsonUrlFromBoundaryResponse(
+        json[0]
+      )
+    );
+  }
+
+  return null;
+}
+
+function getRegionNameFromObservation(
+  value: string
+) {
+  return normalizeName(value);
+}
+
 function Map() {
-  const [countries, setCountries] =
+  const [
+    countries,
+    setCountries,
+  ] =
     useState<Country[]>([]);
 
-  const [indicators, setIndicators] =
+  const [
+    indicators,
+    setIndicators,
+  ] =
     useState<Indicator[]>([]);
 
-  const [observations, setObservations] =
+  const [
+    observations,
+    setObservations,
+  ] =
     useState<Observation[]>([]);
 
-  const [selectedIndicator, setSelectedIndicator] =
+  const [
+    selectedIndicator,
+    setSelectedIndicator,
+  ] =
     useState("");
 
-  const [selectedYear, setSelectedYear] =
+  const [
+    selectedYear,
+    setSelectedYear,
+  ] =
     useState(2024);
 
-  const [hoveredCountry, setHoveredCountry] =
-    useState<string | null>(null);
+  const [
+    mapLevel,
+    setMapLevel,
+  ] =
+    useState<MapLevel>(
+      "standard"
+    );
 
-  const [loadingMetadata, setLoadingMetadata] =
+  const [
+    hoveredArea,
+    setHoveredArea,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    loadingMetadata,
+    setLoadingMetadata,
+  ] =
     useState(true);
 
-  const [loadingData, setLoadingData] =
+  const [
+    loadingData,
+    setLoadingData,
+  ] =
     useState(false);
 
-  const [error, setError] =
+  const [
+    loadingGeometry,
+    setLoadingGeometry,
+  ] =
+    useState(false);
+
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
-  const [zoom, setZoom] =
+  const [
+    zoom,
+    setZoom,
+  ] =
     useState(1);
 
-  const [pan, setPan] =
-    useState({ x: 0, y: 0 });
+  const [
+    pan,
+    setPan,
+  ] =
+    useState({
+      x: 0,
+      y: 0,
+    });
 
-  const [isDragging, setIsDragging] =
+  const [
+    isDragging,
+    setIsDragging,
+  ] =
     useState(false);
 
-  const dragStart = useRef({
-    x: 0,
-    y: 0,
-    panX: 0,
-    panY: 0,
-  });
+  const [
+    subnationalFeatures,
+    setSubnationalFeatures,
+  ] =
+    useState<
+      MapFeature[]
+    >([]);
+
+  const dragStart =
+    useRef({
+      x: 0,
+      y: 0,
+      panX: 0,
+      panY: 0,
+    });
 
   const mapRef =
-    useRef<HTMLDivElement>(null);
+    useRef<HTMLDivElement>(
+      null
+    );
 
+  /*
+   * ---------------------------------------------------------
+   * PROJECTION
+   * ---------------------------------------------------------
+   *
+   * We continue using Natural Earth for the global country
+   * map. Subnational layers use the same longitude/latitude
+   * coordinate system and therefore can be projected by the
+   * same d3 projection.
+   */
   const projection =
     useMemo<GeoProjection>(() => {
       return geoNaturalEarth1().fitSize(
-        [MAP_WIDTH, MAP_HEIGHT],
+        [
+          MAP_WIDTH,
+          MAP_HEIGHT,
+        ],
         countryCollection
       );
     }, []);
 
   const pathGenerator =
     useMemo(() => {
-      return geoPath(projection);
+      return geoPath(
+        projection
+      );
     }, [projection]);
 
+  /*
+   * ---------------------------------------------------------
+   * LOAD METADATA
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
     let cancelled = false;
 
     async function loadMetadata() {
       try {
-        setLoadingMetadata(true);
+        setLoadingMetadata(
+          true
+        );
+
         setError("");
 
         const [
           countriesResponse,
           indicatorsResponse,
-        ] = await Promise.all([
-          fetch(
-            `${API}/countries?limit=500`
-          ),
-          fetch(
-            `${API}/indicators?limit=500`
-          ),
-        ]);
+        ] =
+          await Promise.all([
+            fetch(
+              `${API}/countries?limit=500`
+            ),
+            fetch(
+              `${API}/indicators?limit=500`
+            ),
+          ]);
 
-        if (!countriesResponse.ok) {
+        if (
+          !countriesResponse.ok
+        ) {
           throw new Error(
             "Could not load countries."
           );
         }
 
-        if (!indicatorsResponse.ok) {
+        if (
+          !indicatorsResponse.ok
+        ) {
           throw new Error(
             "Could not load indicators."
           );
@@ -380,26 +706,42 @@ function Map() {
         const indicatorsJson =
           await indicatorsResponse.json();
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
-        const countryRows: Country[] =
-          Array.isArray(countriesJson)
+        const countryRows:
+          Country[] =
+          Array.isArray(
+            countriesJson
+          )
             ? countriesJson
             : countriesJson?.results ??
               countriesJson?.data ??
               [];
 
-        const indicatorRows: Indicator[] =
-          Array.isArray(indicatorsJson)
+        const indicatorRows:
+          Indicator[] =
+          Array.isArray(
+            indicatorsJson
+          )
             ? indicatorsJson
             : indicatorsJson?.results ??
               indicatorsJson?.data ??
               [];
 
-        setCountries(countryRows);
-        setIndicators(indicatorRows);
+        setCountries(
+          countryRows
+        );
 
-        if (indicatorRows.length > 0) {
+        setIndicators(
+          indicatorRows
+        );
+
+        if (
+          indicatorRows.length >
+          0
+        ) {
           setSelectedIndicator(
             indicatorRows[0].code
           );
@@ -414,7 +756,9 @@ function Map() {
         }
       } finally {
         if (!cancelled) {
-          setLoadingMetadata(false);
+          setLoadingMetadata(
+            false
+          );
         }
       }
     }
@@ -426,8 +770,198 @@ function Map() {
     };
   }, []);
 
+  /*
+   * ---------------------------------------------------------
+   * LOAD GEOMETRY
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
-    if (!selectedIndicator) {
+    let cancelled = false;
+
+    async function loadGeometry() {
+      /*
+       * Standard / grouped uses world countries.
+       */
+      if (
+        mapLevel ===
+          "standard" ||
+        mapLevel ===
+          "grouped"
+      ) {
+        setSubnationalFeatures(
+          []
+        );
+
+        setLoadingGeometry(
+          false
+        );
+
+        return;
+      }
+
+      try {
+        setLoadingGeometry(
+          true
+        );
+
+        setError("");
+
+        /*
+         * STATES
+         *
+         * Load the four requested ADM1 countries.
+         */
+        if (
+          mapLevel ===
+          "states"
+        ) {
+          const results =
+            await Promise.all(
+              STATE_SOURCES.map(
+                async (
+                  source
+                ) => {
+                  try {
+                    const metadataResponse =
+                      await fetch(
+                        source.url
+                      );
+
+                    if (
+                      !metadataResponse.ok
+                    ) {
+                      return [];
+                    }
+
+                    const metadata =
+                      await metadataResponse.json();
+
+                    const geoJsonUrl =
+                      getGeoJsonUrlFromBoundaryResponse(
+                        metadata
+                      );
+
+                    if (
+                      !geoJsonUrl
+                    ) {
+                      return [];
+                    }
+
+                    const geoResponse =
+                      await fetch(
+                        geoJsonUrl
+                      );
+
+                    if (
+                      !geoResponse.ok
+                    ) {
+                      return [];
+                    }
+
+                    const geoJson =
+                      (await geoResponse.json()) as MapFeatureCollection;
+
+                    return Array.isArray(
+                      geoJson.features
+                    )
+                      ? geoJson.features
+                      : [];
+                  } catch {
+                    return [];
+                  }
+                }
+              )
+            );
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          setSubnationalFeatures(
+            results.flat()
+          );
+
+          return;
+        }
+
+        /*
+         * REGIONS
+         *
+         * NUTS2 covers European regions.
+         */
+        if (
+          mapLevel ===
+          "regions"
+        ) {
+          const response =
+            await fetch(
+              EU_REGIONS_URL
+            );
+
+          if (
+            !response.ok
+          ) {
+            throw new Error(
+              "Could not load European regional boundaries."
+            );
+          }
+
+          const json =
+            (await response.json()) as MapFeatureCollection;
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          setSubnationalFeatures(
+            Array.isArray(
+              json.features
+            )
+              ? json.features
+              : []
+          );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSubnationalFeatures(
+            []
+          );
+
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Could not load regional boundaries."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingGeometry(
+            false
+          );
+        }
+      }
+    }
+
+    loadGeometry();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapLevel]);
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD INDICATOR DATA
+   * ---------------------------------------------------------
+   */
+  useEffect(() => {
+    if (
+      !selectedIndicator
+    ) {
       setObservations([]);
       return;
     }
@@ -436,43 +970,235 @@ function Map() {
 
     async function loadIndicatorData() {
       try {
-        setLoadingData(true);
+        setLoadingData(
+          true
+        );
+
         setError("");
 
-        const countryNames =
-          countries
-            .map(
-              (country) =>
-                country.name ??
-                country.country_name ??
-                country.code ??
-                country.iso3 ??
-                ""
+        /*
+         * ---------------------------------------------------
+         * COUNTRY LEVEL
+         * ---------------------------------------------------
+         */
+        if (
+          mapLevel ===
+            "standard" ||
+          mapLevel ===
+            "grouped"
+        ) {
+          const countryNames =
+            countries
+              .map(
+                (country) =>
+                  country.name ??
+                  country.country_name ??
+                  country.code ??
+                  country.iso3 ??
+                  ""
+              )
+              .filter(Boolean);
+
+          const responses =
+            await Promise.all(
+              countryNames.map(
+                async (
+                  country
+                ) => {
+                  try {
+                    const response =
+                      await fetch(
+                        `${API}/data/${encodeURIComponent(
+                          country
+                        )}/${encodeURIComponent(
+                          selectedIndicator
+                        )}`
+                      );
+
+                    if (
+                      !response.ok
+                    ) {
+                      return [];
+                    }
+
+                    const json =
+                      await response.json();
+
+                    return Array.isArray(
+                      json
+                    )
+                      ? json
+                      : json?.results ??
+                        json?.data ??
+                        [];
+                  } catch {
+                    return [];
+                  }
+                }
+              )
+            );
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          const rows:
+            Observation[] =
+            [];
+
+          countryNames.forEach(
+            (
+              country,
+              index
+            ) => {
+              const result =
+                responses[index];
+
+              if (
+                !Array.isArray(
+                  result
+                )
+              ) {
+                return;
+              }
+
+              result.forEach(
+                (row: any) => {
+                  const year =
+                    Number(
+                      row?.year
+                    );
+
+                  const value =
+                    Number(
+                      row?.value
+                    );
+
+                  if (
+                    Number.isFinite(
+                      year
+                    ) &&
+                    Number.isFinite(
+                      value
+                    )
+                  ) {
+                    rows.push({
+                      country,
+                      indicator:
+                        selectedIndicator,
+                      year,
+                      value,
+                    });
+                  }
+                }
+              );
+            }
+          );
+
+          setObservations(
+            rows
+          );
+
+          const years =
+            Array.from(
+              new Set(
+                rows.map(
+                  (row) =>
+                    row.year
+                )
+              )
+            ).sort(
+              (a, b) =>
+                a - b
+            );
+
+          if (
+            years.length >
+            0
+          ) {
+            setSelectedYear(
+              (current) =>
+                years.includes(
+                  current
+                )
+                  ? current
+                  : years[
+                      years.length -
+                        1
+                    ]
+            );
+          }
+
+          return;
+        }
+
+        /*
+         * ---------------------------------------------------
+         * SUBNATIONAL LEVEL
+         * ---------------------------------------------------
+         *
+         * We use the geometry names as the entities to query.
+         *
+         * This assumes your API stores the subnational
+         * observations using the same or approximately the
+         * same names.
+         */
+        const areaNames =
+          Array.from(
+            new Set(
+              subnationalFeatures
+                .map(
+                  (
+                    mapFeature
+                  ) =>
+                    getFeatureName(
+                      mapFeature
+                    )
+                )
+                .filter(Boolean)
             )
-            .filter(Boolean);
+          );
+
+        if (
+          areaNames.length ===
+          0
+        ) {
+          setObservations(
+            []
+          );
+          return;
+        }
 
         const responses =
           await Promise.all(
-            countryNames.map(
-              async (country) => {
+            areaNames.map(
+              async (
+                area
+              ) => {
                 try {
                   const response =
                     await fetch(
                       `${API}/data/${encodeURIComponent(
-                        country
+                        area
                       )}/${encodeURIComponent(
                         selectedIndicator
                       )}`
                     );
 
-                  if (!response.ok) {
+                  if (
+                    !response.ok
+                  ) {
                     return [];
                   }
 
                   const json =
                     await response.json();
 
-                  return Array.isArray(json)
+                  return Array.isArray(
+                    json
+                  )
                     ? json
                     : json?.results ??
                       json?.data ??
@@ -484,33 +1210,54 @@ function Map() {
             )
           );
 
-        if (cancelled) return;
+        if (
+          cancelled
+        ) {
+          return;
+        }
 
-        const rows: Observation[] = [];
+        const rows:
+          Observation[] =
+          [];
 
-        countryNames.forEach(
-          (country, index) => {
+        areaNames.forEach(
+          (
+            area,
+            index
+          ) => {
             const result =
               responses[index];
 
-            if (!Array.isArray(result)) {
+            if (
+              !Array.isArray(
+                result
+              )
+            ) {
               return;
             }
 
             result.forEach(
               (row: any) => {
                 const year =
-                  Number(row?.year);
+                  Number(
+                    row?.year
+                  );
 
                 const value =
-                  Number(row?.value);
+                  Number(
+                    row?.value
+                  );
 
                 if (
-                  Number.isFinite(year) &&
-                  Number.isFinite(value)
+                  Number.isFinite(
+                    year
+                  ) &&
+                  Number.isFinite(
+                    value
+                  )
                 ) {
                   rows.push({
-                    country,
+                    country: area,
                     indicator:
                       selectedIndicator,
                     year,
@@ -522,24 +1269,37 @@ function Map() {
           }
         );
 
-        setObservations(rows);
-
-        const years = Array.from(
-          new Set(
-            rows.map(
-              (row) => row.year
-            )
-          )
-        ).sort(
-          (a, b) => a - b
+        setObservations(
+          rows
         );
 
-        if (years.length > 0) {
+        const years =
+          Array.from(
+            new Set(
+              rows.map(
+                (row) =>
+                  row.year
+              )
+            )
+          ).sort(
+            (a, b) =>
+              a - b
+          );
+
+        if (
+          years.length >
+          0
+        ) {
           setSelectedYear(
             (current) =>
-              years.includes(current)
+              years.includes(
+                current
+              )
                 ? current
-                : years[years.length - 1]
+                : years[
+                    years.length -
+                      1
+                  ]
           );
         }
       } catch (err) {
@@ -550,11 +1310,15 @@ function Map() {
               : "Could not load map data."
           );
 
-          setObservations([]);
+          setObservations(
+            []
+          );
         }
       } finally {
         if (!cancelled) {
-          setLoadingData(false);
+          setLoadingData(
+            false
+          );
         }
       }
     }
@@ -567,19 +1331,29 @@ function Map() {
   }, [
     countries,
     selectedIndicator,
+    mapLevel,
+    subnationalFeatures,
   ]);
 
+  /*
+   * ---------------------------------------------------------
+   * AVAILABLE YEARS
+   * ---------------------------------------------------------
+   */
   const availableYears =
     useMemo(() => {
       return Array.from(
         new Set(
           observations.map(
-            (observation) =>
+            (
+              observation
+            ) =>
               observation.year
           )
         )
       ).sort(
-        (a, b) => a - b
+        (a, b) =>
+          a - b
       );
     }, [observations]);
 
@@ -593,7 +1367,9 @@ function Map() {
   const selectedYearObservations =
     useMemo(() => {
       return observations.filter(
-        (observation) =>
+        (
+          observation
+        ) =>
           observation.year ===
           selectedYear
       );
@@ -605,35 +1381,52 @@ function Map() {
   const values =
     selectedYearObservations
       .map(
-        (observation) =>
+        (
+          observation
+        ) =>
           observation.value
       )
       .filter(
-        (value) =>
-          Number.isFinite(value)
+        (
+          value
+        ) =>
+          Number.isFinite(
+            value
+          )
       );
 
   const minimum =
     values.length > 0
-      ? Math.min(...values)
+      ? Math.min(
+          ...values
+        )
       : 0;
 
   const maximum =
     values.length > 0
-      ? Math.max(...values)
+      ? Math.max(
+          ...values
+        )
       : 1;
 
-  const countryValueMap =
+  /*
+   * ---------------------------------------------------------
+   * VALUE LOOKUP
+   * ---------------------------------------------------------
+   */
+  const areaValueMap =
     useMemo(() => {
-      const valueLookup =
+      const lookup =
         new globalThis.Map<
           string,
           number
         >();
 
       selectedYearObservations.forEach(
-        (observation) => {
-          valueLookup.set(
+        (
+          observation
+        ) => {
+          lookup.set(
             normalizeName(
               observation.country
             ),
@@ -642,66 +1435,198 @@ function Map() {
         }
       );
 
-      return valueLookup;
+      return lookup;
     }, [
       selectedYearObservations,
     ]);
 
-  function getCountryValue(
-    mapName: string
+  function getAreaValue(
+    areaName: string
   ) {
     const direct =
-      countryValueMap.get(
-        normalizeName(mapName)
+      areaValueMap.get(
+        normalizeName(
+          areaName
+        )
       );
 
-    if (direct !== undefined) {
+    if (
+      direct !==
+      undefined
+    ) {
       return direct;
     }
 
-    const matchingObservation =
+    /*
+     * Country aliases only matter for the world map.
+     */
+    if (
+      mapLevel ===
+        "standard" ||
+      mapLevel ===
+        "grouped"
+    ) {
+      const matchingObservation =
+        selectedYearObservations.find(
+          (
+            observation
+          ) =>
+            countryNamesMatch(
+              observation.country,
+              areaName
+            )
+        );
+
+      return (
+        matchingObservation?.value ??
+        null
+      );
+    }
+
+    /*
+     * For subnational maps we also allow a loose
+     * normalized comparison.
+     */
+    const normalized =
+      normalizeName(
+        areaName
+      );
+
+    const matching =
       selectedYearObservations.find(
-        (observation) =>
-          countryNamesMatch(
-            observation.country,
-            mapName
-          )
+        (
+          observation
+        ) =>
+          getRegionNameFromObservation(
+            observation.country
+          ) ===
+          normalized
       );
 
     return (
-      matchingObservation?.value ??
+      matching?.value ??
       null
     );
   }
 
-  const mapPathData =
+  /*
+   * ---------------------------------------------------------
+   * COUNTRY PATHS
+   * ---------------------------------------------------------
+   */
+  const countryPathData =
     useMemo(() => {
       return countryCollection.features
-        .map((mapFeature) => {
-          const name =
-            mapFeature.properties
-              ?.name ?? "";
+        .map(
+          (
+            mapFeature
+          ) => {
+            const name =
+              getFeatureName(
+                mapFeature
+              );
 
-          const path =
-            pathGenerator(
-              mapFeature
-            ) ?? "";
+            const path =
+              pathGenerator(
+                mapFeature
+              ) ?? "";
 
-          return {
-            feature: mapFeature,
-            name,
-            path,
-          };
-        })
+            return {
+              feature:
+                mapFeature,
+              name,
+              code:
+                getFeatureCode(
+                  mapFeature
+                ),
+              path,
+            };
+          }
+        )
         .filter(
-          (item) =>
+          (
+            item
+          ) =>
             item.name &&
             item.path
         );
-    }, [pathGenerator]);
+    }, [
+      pathGenerator,
+    ]);
 
+  /*
+   * ---------------------------------------------------------
+   * SUBNATIONAL PATHS
+   * ---------------------------------------------------------
+   */
+  const subnationalPathData =
+    useMemo(() => {
+      return subnationalFeatures
+        .map(
+          (
+            mapFeature
+          ) => {
+            const name =
+              getFeatureName(
+                mapFeature
+              );
+
+            const code =
+              getFeatureCode(
+                mapFeature
+              );
+
+            const path =
+              pathGenerator(
+                mapFeature
+              ) ?? "";
+
+            return {
+              feature:
+                mapFeature,
+              name,
+              code,
+              path,
+            };
+          }
+        )
+        .filter(
+          (
+            item
+          ) =>
+            item.name &&
+            item.path
+        );
+    }, [
+      subnationalFeatures,
+      pathGenerator,
+    ]);
+
+  /*
+   * ---------------------------------------------------------
+   * MAP LABEL
+   * ---------------------------------------------------------
+   */
+  const levelLabel =
+    mapLevel ===
+    "standard"
+      ? "Countries"
+      : mapLevel ===
+        "grouped"
+      ? "Grouped"
+      : mapLevel ===
+        "states"
+      ? "States & provinces"
+      : "European regions";
+
+  /*
+   * ---------------------------------------------------------
+   * RESET / ZOOM
+   * ---------------------------------------------------------
+   */
   function resetMap() {
     setZoom(1);
+
     setPan({
       x: 0,
       y: 0,
@@ -709,25 +1634,43 @@ function Map() {
   }
 
   function zoomIn() {
-    setZoom((current) =>
-      Math.min(3, current + 0.25)
+    setZoom(
+      (current) =>
+        Math.min(
+          3,
+          current + 0.25
+        )
     );
   }
 
   function zoomOut() {
-    setZoom((current) =>
-      Math.max(1, current - 0.25)
+    setZoom(
+      (current) =>
+        Math.max(
+          1,
+          current - 0.25
+        )
     );
   }
 
+  /*
+   * ---------------------------------------------------------
+   * POINTER DRAG
+   * ---------------------------------------------------------
+   */
   function handlePointerDown(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    if (event.button !== 0) {
+    if (
+      event.button !==
+      0
+    ) {
       return;
     }
 
-    setIsDragging(true);
+    setIsDragging(
+      true
+    );
 
     dragStart.current = {
       x: event.clientX,
@@ -744,7 +1687,9 @@ function Map() {
   function handlePointerMove(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    if (!isDragging) {
+    if (
+      !isDragging
+    ) {
       return;
     }
 
@@ -771,16 +1716,17 @@ function Map() {
         -maxPanX,
         Math.min(
           maxPanX,
-          dragStart.current.panX +
-            dx
+          dragStart.current
+            .panX + dx
         )
       ),
+
       y: Math.max(
         -maxPanY,
         Math.min(
           maxPanY,
-          dragStart.current.panY +
-            dy
+          dragStart.current
+            .panY + dy
         )
       ),
     });
@@ -789,7 +1735,9 @@ function Map() {
   function handlePointerUp(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    setIsDragging(false);
+    setIsDragging(
+      false
+    );
 
     if (
       event.currentTarget.hasPointerCapture(
@@ -802,8 +1750,15 @@ function Map() {
     }
   }
 
+  /*
+   * ---------------------------------------------------------
+   * DOWNLOAD
+   * ---------------------------------------------------------
+   */
   async function downloadMap() {
-    if (!mapRef.current) {
+    if (
+      !mapRef.current
+    ) {
       return;
     }
 
@@ -813,7 +1768,9 @@ function Map() {
           "svg"
         );
 
-      if (!svg) return;
+      if (!svg) {
+        return;
+      }
 
       const serializer =
         new XMLSerializer();
@@ -829,26 +1786,37 @@ function Map() {
             `<?xml version="1.0" encoding="UTF-8"?>${source}`,
           ],
           {
-            type: "image/svg+xml",
+            type:
+              "image/svg+xml",
           }
         );
 
       const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+          blob
+        );
 
       const link =
-        document.createElement("a");
+        document.createElement(
+          "a"
+        );
 
       link.href = url;
 
       link.download =
-        `worlddata-${selectedIndicator}-${selectedYear}.svg`;
+        `worlddata-${mapLevel}-${selectedIndicator}-${selectedYear}.svg`;
 
-      document.body.appendChild(link);
+      document.body.appendChild(
+        link
+      );
+
       link.click();
+
       link.remove();
 
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(
+        url
+      );
     } catch (err) {
       console.error(
         "Could not download map",
@@ -857,7 +1825,14 @@ function Map() {
     }
   }
 
-  if (loadingMetadata) {
+  /*
+   * ---------------------------------------------------------
+   * LOADING
+   * ---------------------------------------------------------
+   */
+  if (
+    loadingMetadata
+  ) {
     return (
       <section className="map-page">
         <div className="map-loading">
@@ -867,20 +1842,28 @@ function Map() {
     );
   }
 
+  /*
+   * ---------------------------------------------------------
+   * RENDER
+   * ---------------------------------------------------------
+   */
   return (
     <section className="map-page">
+
       <div className="map-heading">
         <div>
           <div className="map-eyebrow">
             WORLD DATA · MAP
           </div>
 
-          <h1>World map</h1>
+          <h1>
+            World map
+          </h1>
 
           <p>
-            Compare countries across
-            the world for a selected
-            indicator and year.
+            Compare countries,
+            states and regions
+            across the world.
           </p>
         </div>
       </div>
@@ -891,39 +1874,65 @@ function Map() {
             Unable to load data
           </strong>
 
-          <span>{error}</span>
+          <span>
+            {error}
+          </span>
         </div>
       )}
 
       <div className="map-controls">
-        <div className="map-control">
-          <label>INDICATOR</label>
+
+        {/* INDICATOR */}
+        <div className="map-control map-indicator-control">
+          <label>
+            INDICATOR
+          </label>
 
           <select
-            value={selectedIndicator}
-            onChange={(event) =>
+            value={
+              selectedIndicator
+            }
+            onChange={(
+              event
+            ) =>
               setSelectedIndicator(
                 event.target.value
               )
             }
           >
-            {indicators.map((item) => (
-              <option
-                key={item.code}
-                value={item.code}
-              >
-                {item.name ?? item.code}
-              </option>
-            ))}
+            {indicators.map(
+              (
+                item
+              ) => (
+                <option
+                  key={
+                    item.code
+                  }
+                  value={
+                    item.code
+                  }
+                >
+                  {item.name ??
+                    item.code}
+                </option>
+              )
+            )}
           </select>
         </div>
 
+        {/* YEAR */}
         <div className="map-control">
-          <label>YEAR</label>
+          <label>
+            YEAR
+          </label>
 
           <select
-            value={selectedYear}
-            onChange={(event) =>
+            value={
+              selectedYear
+            }
+            onChange={(
+              event
+            ) =>
               setSelectedYear(
                 Number(
                   event.target.value
@@ -932,10 +1941,16 @@ function Map() {
             }
           >
             {availableYears.map(
-              (year) => (
+              (
+                year
+              ) => (
                 <option
-                  key={year}
-                  value={year}
+                  key={
+                    year
+                  }
+                  value={
+                    year
+                  }
                 >
                   {year}
                 </option>
@@ -944,9 +1959,90 @@ function Map() {
           </select>
         </div>
 
+        {/* LEVEL */}
+        <div className="map-control map-level-control">
+          <label>
+            GEOGRAPHY
+          </label>
+
+          <div className="map-level-toggle">
+            <button
+              type="button"
+              className={
+                mapLevel ===
+                "grouped"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setMapLevel(
+                  "grouped"
+                )
+              }
+            >
+              Grouped
+            </button>
+
+            <button
+              type="button"
+              className={
+                mapLevel ===
+                "standard"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setMapLevel(
+                  "standard"
+                )
+              }
+            >
+              Standard
+            </button>
+
+            <button
+              type="button"
+              className={
+                mapLevel ===
+                "states"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setMapLevel(
+                  "states"
+                )
+              }
+            >
+              States
+            </button>
+
+            <button
+              type="button"
+              className={
+                mapLevel ===
+                "regions"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setMapLevel(
+                  "regions"
+                )
+              }
+            >
+              Regions
+            </button>
+          </div>
+        </div>
+
+        {/* DATA COUNT */}
         <div className="map-control-info">
           <label>
-            COUNTRIES WITH DATA
+            {mapLevel ===
+            "standard"
+              ? "COUNTRIES WITH DATA"
+              : "AREAS WITH DATA"}
           </label>
 
           <strong>
@@ -958,11 +2054,15 @@ function Map() {
       </div>
 
       <div className="map-card">
+
         <div className="map-card-header">
+
           <div>
             <div className="map-card-eyebrow">
               {indicator?.category ??
                 "INDICATOR"}
+              {" · "}
+              {levelLabel}
             </div>
 
             <h2>
@@ -972,6 +2072,7 @@ function Map() {
 
             <p>
               {selectedYear}
+
               {indicator?.unit
                 ? ` · ${indicator.unit}`
                 : ""}
@@ -979,14 +2080,22 @@ function Map() {
           </div>
 
           <div className="map-header-right">
+
             <div className="map-actions">
+
               <button
                 className="map-action-button"
-                onClick={zoomOut}
-                disabled={zoom <= 1}
+                onClick={
+                  zoomOut
+                }
+                disabled={
+                  zoom <= 1
+                }
                 title="Zoom out"
               >
-                <Minus size={15} />
+                <Minus
+                  size={15}
+                />
               </button>
 
               <span className="map-zoom-value">
@@ -998,40 +2107,65 @@ function Map() {
 
               <button
                 className="map-action-button"
-                onClick={zoomIn}
-                disabled={zoom >= 3}
+                onClick={
+                  zoomIn
+                }
+                disabled={
+                  zoom >= 3
+                }
                 title="Zoom in"
               >
-                <Plus size={15} />
+                <Plus
+                  size={15}
+                />
               </button>
 
               <button
                 className="map-action-button"
-                onClick={resetMap}
+                onClick={
+                  resetMap
+                }
                 title="Reset map"
               >
-                <RotateCcw size={14} />
+                <RotateCcw
+                  size={14}
+                />
               </button>
 
               <button
                 className="map-download-button"
-                onClick={downloadMap}
+                onClick={
+                  downloadMap
+                }
                 title="Download map"
               >
-                <Download size={14} />
-                <span>Download</span>
+                <Download
+                  size={14}
+                />
+
+                <span>
+                  Download
+                </span>
               </button>
+
             </div>
 
             <div className="map-summary">
-              <span>GLOBAL RANGE</span>
+              <span>
+                GLOBAL RANGE
+              </span>
 
               <strong>
-                {formatValue(minimum)}
+                {formatValue(
+                  minimum
+                )}
                 {" — "}
-                {formatValue(maximum)}
+                {formatValue(
+                  maximum
+                )}
               </strong>
             </div>
+
           </div>
         </div>
 
@@ -1055,9 +2189,11 @@ function Map() {
             handlePointerUp
           }
         >
-          {loadingData ? (
+
+          {loadingData ||
+          loadingGeometry ? (
             <div className="map-loading">
-              Loading map data...
+              Loading map...
             </div>
           ) : (
             <svg
@@ -1065,14 +2201,19 @@ function Map() {
               viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
               preserveAspectRatio="xMidYMid meet"
               role="img"
-              aria-label={`World map showing ${
+              aria-label={`WorldData map showing ${
                 indicator?.name ??
                 selectedIndicator
               } in ${selectedYear}`}
             >
+
               <rect
-                width={MAP_WIDTH}
-                height={MAP_HEIGHT}
+                width={
+                  MAP_WIDTH
+                }
+                height={
+                  MAP_HEIGHT
+                }
                 fill="#ffffff"
               />
 
@@ -1087,98 +2228,245 @@ function Map() {
                   MAP_HEIGHT / 2
                 })`}
               >
-                {mapPathData.map(
-                  ({
-                    name,
-                    path,
-                  }) => {
-                    const value =
-                      getCountryValue(
-                        name
+
+                {/* WORLD COUNTRY BACKGROUND */}
+                {(mapLevel ===
+                  "standard" ||
+                  mapLevel ===
+                    "grouped" ||
+                  mapLevel ===
+                    "states" ||
+                  mapLevel ===
+                    "regions") &&
+                  countryPathData.map(
+                    ({
+                      name,
+                      path,
+                    }) => {
+                      const showCountry =
+                        mapLevel ===
+                          "standard" ||
+                        mapLevel ===
+                          "grouped";
+
+                      const value =
+                        showCountry
+                          ? getAreaValue(
+                              name
+                            )
+                          : null;
+
+                      return (
+                        <path
+                          key={`country-${name}`}
+                          d={path}
+                          fill={
+                            showCountry
+                              ? getColor(
+                                  value,
+                                  minimum,
+                                  maximum
+                                )
+                              : "#f8fafc"
+                          }
+                          stroke="#ffffff"
+                          strokeWidth={
+                            showCountry
+                              ? 0.55
+                              : 0.35
+                          }
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                          className={
+                            showCountry
+                              ? value ===
+                                null
+                                ? "map-country no-data"
+                                : "map-country"
+                              : "map-country-background"
+                          }
+                          onMouseEnter={() =>
+                            showCountry &&
+                            setHoveredArea(
+                              name
+                            )
+                          }
+                          onMouseLeave={() =>
+                            showCountry &&
+                            setHoveredArea(
+                              null
+                            )
+                          }
+                        />
                       );
+                    }
+                  )}
 
-                    const isHovered =
-                      hoveredCountry ===
-                      name;
+                {/* STATES / PROVINCES */}
+                {mapLevel ===
+                  "states" &&
+                  subnationalPathData.map(
+                    ({
+                      name,
+                      code,
+                      path,
+                    }) => {
+                      const value =
+                        getAreaValue(
+                          name
+                        );
 
-                    return (
-                      <path
-                        key={name}
-                        d={path}
-                        fill={getColor(
-                          value,
-                          minimum,
-                          maximum
-                        )}
-                        stroke={
-                          isHovered
-                            ? "#111827"
-                            : "#ffffff"
-                        }
-                        strokeWidth={
-                          isHovered
-                            ? 1.5
-                            : 0.55
-                        }
-                        strokeLinejoin="round"
-                        vectorEffect="non-scaling-stroke"
-                        className={
-                          value === null
-                            ? "map-country no-data"
-                            : "map-country"
-                        }
-                        onMouseEnter={() =>
-                          setHoveredCountry(
-                            name
-                          )
-                        }
-                        onMouseLeave={() =>
-                          setHoveredCountry(
+                      const isHovered =
+                        hoveredArea ===
+                        name;
+
+                      return (
+                        <path
+                          key={`state-${code}-${name}`}
+                          d={path}
+                          fill={getColor(
+                            value,
+                            minimum,
+                            maximum
+                          )}
+                          stroke={
+                            isHovered
+                              ? "#111827"
+                              : "#ffffff"
+                          }
+                          strokeWidth={
+                            isHovered
+                              ? 1.5
+                              : 0.7
+                          }
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                          className={
+                            value ===
                             null
-                          )
-                        }
-                      />
-                    );
-                  }
-                )}
+                              ? "map-region no-data"
+                              : "map-region"
+                          }
+                          onMouseEnter={() =>
+                            setHoveredArea(
+                              name
+                            )
+                          }
+                          onMouseLeave={() =>
+                            setHoveredArea(
+                              null
+                            )
+                          }
+                        />
+                      );
+                    }
+                  )}
+
+                {/* EUROPEAN REGIONS */}
+                {mapLevel ===
+                  "regions" &&
+                  subnationalPathData.map(
+                    ({
+                      name,
+                      code,
+                      path,
+                    }) => {
+                      const value =
+                        getAreaValue(
+                          name
+                        );
+
+                      const isHovered =
+                        hoveredArea ===
+                        name;
+
+                      return (
+                        <path
+                          key={`region-${code}-${name}`}
+                          d={path}
+                          fill={getColor(
+                            value,
+                            minimum,
+                            maximum
+                          )}
+                          stroke={
+                            isHovered
+                              ? "#111827"
+                              : "#ffffff"
+                          }
+                          strokeWidth={
+                            isHovered
+                              ? 1.5
+                              : 0.65
+                          }
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                          className={
+                            value ===
+                            null
+                              ? "map-region no-data"
+                              : "map-region"
+                          }
+                          onMouseEnter={() =>
+                            setHoveredArea(
+                              name
+                            )
+                          }
+                          onMouseLeave={() =>
+                            setHoveredArea(
+                              null
+                            )
+                          }
+                        />
+                      );
+                    }
+                  )}
+
               </g>
             </svg>
           )}
 
-          {hoveredCountry && (
+          {hoveredArea && (
             <div className="map-tooltip">
               <strong>
-                {hoveredCountry}
+                {hoveredArea}
               </strong>
 
               <span>
                 {formatValue(
-                  getCountryValue(
-                    hoveredCountry
+                  getAreaValue(
+                    hoveredArea
                   )
                 )}
               </span>
             </div>
           )}
 
-          {!loadingData && (
-            <div className="map-hint">
-              Drag to move · + / − to zoom
-            </div>
-          )}
+          {!loadingData &&
+            !loadingGeometry && (
+              <div className="map-hint">
+                Drag to move · + / − to zoom
+              </div>
+            )}
         </div>
 
         <div className="map-footer">
+
           <div className="map-legend">
+
             <span className="map-legend-label">
               LOW
             </span>
 
             <div className="map-legend-scale">
               {COLORS.map(
-                (color) => (
+                (
+                  color
+                ) => (
                   <span
-                    key={color}
+                    key={
+                      color
+                    }
                     style={{
                       backgroundColor:
                         color,
@@ -1191,23 +2479,50 @@ function Map() {
             <span className="map-legend-label">
               HIGH
             </span>
+
           </div>
 
           <div className="map-legend-values">
+
             <span>
-              {formatValue(minimum)}
+              {formatValue(
+                minimum
+              )}
             </span>
 
             <span>
-              {formatValue(maximum)}
+              {formatValue(
+                maximum
+              )}
             </span>
+
           </div>
+        </div>
+
+        <div className="map-source">
+          Administrative boundaries:
+          geoBoundaries Database ·
+          European regions:
+          Eurostat NUTS
         </div>
       </div>
 
       <div className="map-country-summary">
+
         <div>
-          <span>INDICATOR</span>
+          <span>
+            GEOGRAPHY
+          </span>
+
+          <strong>
+            {levelLabel}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            INDICATOR
+          </span>
 
           <strong>
             {indicator?.name ??
@@ -1216,7 +2531,9 @@ function Map() {
         </div>
 
         <div>
-          <span>YEAR</span>
+          <span>
+            YEAR
+          </span>
 
           <strong>
             {selectedYear}
@@ -1224,15 +2541,24 @@ function Map() {
         </div>
 
         <div>
-          <span>COUNTRIES</span>
+          <span>
+            AREAS
+          </span>
 
           <strong>
-            {countries.length}
+            {mapLevel ===
+              "standard" ||
+            mapLevel ===
+              "grouped"
+              ? countries.length
+              : subnationalFeatures.length}
           </strong>
         </div>
 
         <div>
-          <span>OBSERVATIONS</span>
+          <span>
+            OBSERVATIONS
+          </span>
 
           <strong>
             {
@@ -1240,10 +2566,11 @@ function Map() {
             }
           </strong>
         </div>
+
       </div>
+
     </section>
   );
 }
 
 export default Map;
-
