@@ -450,17 +450,17 @@
 .year-filter {
   position: relative;
 
-  width: 100%;
-  min-width: 0;
-  max-width: 285px;
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
 
   box-sizing: border-box;
 }
 
 .year-selection-control {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
   height: 42px;
 
   display: flex;
@@ -485,12 +485,10 @@
 
   white-space: nowrap;
   text-overflow: ellipsis;
-
 }
 
 .year-selection-control .selector-chevron {
   flex-shrink: 0;
-
 }
 
 .year-dropdown {
@@ -657,6 +655,61 @@
 }
 
 /* =========================================================
+   VALUE TYPE / YoY TOGGLE
+   ========================================================= */
+
+.trend-value-toggle {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 3px;
+
+  border: 1px solid var(--border);
+  border-radius: 9px;
+
+  background: var(--background);
+
+  box-sizing: border-box;
+}
+
+.trend-value-button {
+  height: 29px;
+
+  padding: 0 10px;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 650;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.trend-value-button:hover {
+  color: var(--text);
+}
+
+.trend-value-button.active {
+  background: var(--surface);
+  color: var(--text);
+
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* =========================================================
    CHART CARD
    ========================================================= */
 
@@ -716,6 +769,53 @@
 
   font-size: 12px;
   font-weight: 600;
+}
+
+/* =========================================================
+   CHART ACTIONS
+   ========================================================= */
+
+.trend-chart-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  flex-wrap: wrap;
+}
+
+.chart-download-button {
+  height: 32px;
+
+  padding: 0 11px;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.chart-download-button:hover {
+  background: var(--background);
+  border-color: #b7c0cb;
+}
+
+.chart-download-button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* =========================================================
@@ -853,7 +953,10 @@
 
   .year-filter {
     grid-column: 1 / -1;
-    max-width: 280px;
+
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
   }
 }
 
@@ -868,7 +971,16 @@
 
   .year-filter {
     grid-column: auto;
-    max-width: none;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .year-selection-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
   }
 
   .trend-card-header {
@@ -877,65 +989,24 @@
     padding: 22px;
   }
 
+  .trend-chart-actions {
+    width: 100%;
+
+    justify-content: flex-start;
+  }
+
+  .trend-value-toggle {
+    max-width: 100%;
+  }
+
+  .trend-value-button {
+    padding: 0 9px;
+  }
+
   .chart-container {
     height: 370px;
     min-height: 370px;
 
     padding: 10px 5px 0;
   }
-}
-
-.year-filter {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-}
-
-.year-filter .selection-control {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-}
-
-/* =========================================================
-   CHART ACTIONS
-   ========================================================= */
-
-.trend-chart-actions {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.chart-download-button {
-  height: 32px;
-
-  padding: 0 11px;
-
-  border: 1px solid var(--border);
-  border-radius: 8px;
-
-  background: var(--surface);
-  color: var(--text);
-
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 650;
-
-  cursor: pointer;
-
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    opacity 0.12s ease;
-}
-
-.chart-download-button:hover {
-  background: var(--background);
-  border-color: #b7c0cb;
-}
-
-.chart-download-button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
