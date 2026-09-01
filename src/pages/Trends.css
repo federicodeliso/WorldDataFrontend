@@ -47,21 +47,18 @@
   display: grid;
 
   /*
-     DESKTOP LAYOUT
+    DESKTOP:
 
-     ROW 1:
-     Countries | Indicators
-
-     ROW 2:
-     Value     | Year Range
+    Countries  | Indicators
+    Value      | Year
   */
   grid-template-columns:
     minmax(0, 1fr)
     minmax(0, 1fr);
 
-  grid-template-areas:
-    "countries indicators"
-    "value     year";
+  grid-template-rows:
+    auto
+    auto;
 
   gap: 16px;
 
@@ -83,27 +80,46 @@
 }
 
 /* =========================================================
-   EXPLICIT CONTROL PLACEMENT
+   CONTROL ORDER
+   =========================================================
+
+   IMPORTANT:
+   Current JSX/DOM order is assumed to be:
+
+   1. Countries
+   2. Value
+   3. Indicators
+   4. Year
+
+   We deliberately rearrange them visually to:
+
+   Countries  | Indicators
+   Value      | Year
+
    ========================================================= */
 
 /* 1 — Countries */
 .trend-controls > :nth-child(1) {
-  grid-area: countries;
+  grid-column: 1;
+  grid-row: 1;
 }
 
-/* 2 — Indicators */
+/* 2 — Value */
 .trend-controls > :nth-child(2) {
-  grid-area: indicators;
+  grid-column: 1;
+  grid-row: 2;
 }
 
-/* 3 — Value */
+/* 3 — Indicators */
 .trend-controls > :nth-child(3) {
-  grid-area: value;
+  grid-column: 2;
+  grid-row: 1;
 }
 
-/* 4 — Year Range */
+/* 4 — Year */
 .trend-controls > :nth-child(4) {
-  grid-area: year;
+  grid-column: 2;
+  grid-row: 2;
 }
 
 /* =========================================================
@@ -131,8 +147,10 @@
 
 .control-label > span {
   color: var(--text);
+
   font-size: 10px;
   font-weight: 750;
+
   letter-spacing: 0.1em;
 }
 
@@ -209,6 +227,7 @@
   flex: 1;
 
   overflow: hidden;
+
   text-align: left;
 }
 
@@ -1021,11 +1040,40 @@
   .trend-controls {
     grid-template-columns: 1fr;
 
-    grid-template-areas:
-      "countries"
-      "indicators"
-      "value"
-      "year";
+    grid-template-rows:
+      auto
+      auto
+      auto
+      auto;
+  }
+
+  /*
+    Mobile:
+
+    Countries
+    Value
+    Indicators
+    Year
+  */
+
+  .trend-controls > :nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .trend-controls > :nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .trend-controls > :nth-child(3) {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .trend-controls > :nth-child(4) {
+    grid-column: 1;
+    grid-row: 4;
   }
 
   .trend-value-toggle {
@@ -1036,16 +1084,19 @@
 
   .trend-card-header {
     flex-direction: column;
+
     padding: 22px;
   }
 
   .trend-chart-actions {
     width: 100%;
+
     justify-content: flex-start;
   }
 
   .trend-value-button {
     padding: 0 8px;
+
     font-size: 10px;
   }
 
@@ -1056,3 +1107,4 @@
     padding: 10px 5px 0;
   }
 }
+
