@@ -20,8 +20,7 @@ import {
 import { toPng } from "html-to-image";
 import "./Trends.css";
 
-const API =
-  "https://worlddataapi-kf6d.onrender.com";
+const API = "https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   country_id?: number;
@@ -48,8 +47,6 @@ type Observation = {
   value: number | null;
 };
 
-type ValueMode = "level" | "yoy";
-
 type SelectorProps = {
   title: string;
   placeholder: string;
@@ -63,11 +60,13 @@ function Trends() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
 
-  const [selectedCountries, setSelectedCountries] =
-    useState<string[]>(["Italy"]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([
+    "Italy",
+  ]);
 
-  const [selectedIndicators, setSelectedIndicators] =
-    useState<string[]>(["GDP"]);
+  const [selectedIndicators, setSelectedIndicators] = useState<string[]>([
+    "GDP",
+  ]);
 
   const [observations, setObservations] = useState<Observation[]>([]);
 
@@ -85,16 +84,17 @@ function Trends() {
   const [startYear, setStartYear] = useState(1990);
   const [endYear, setEndYear] = useState(2024);
 
-  const [valueMode, setValueMode] =
-    useState<ValueMode>("level");
-
   const controlsRef = useRef<HTMLDivElement>(null);
+
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const [hiddenSeries, setHiddenSeries] =
-    useState<Record<string, boolean>>({});
+  const [hiddenSeries, setHiddenSeries] = useState<
+    Record<string, boolean>
+  >({});
 
   const [downloading, setDownloading] = useState(false);
+
+
 
   /*
    * ---------------------------------------------------------
@@ -108,62 +108,41 @@ function Trends() {
         setLoadingMetadata(true);
         setError("");
 
-        const [
-          countriesResponse,
-          indicatorsResponse,
-        ] = await Promise.all([
-          fetch(`${API}/countries?limit=500`),
-          fetch(`${API}/indicators?limit=500`),
-        ]);
+        const [countriesResponse, indicatorsResponse] =
+          await Promise.all([
+            fetch(`${API}/countries?limit=500`),
+            fetch(`${API}/indicators?limit=500`),
+          ]);
 
         if (!countriesResponse.ok) {
-          throw new Error(
-            "Could not load countries."
-          );
+          throw new Error("Could not load countries.");
         }
 
         if (!indicatorsResponse.ok) {
-          throw new Error(
-            "Could not load indicators."
-          );
+          throw new Error("Could not load indicators.");
         }
 
-        const countriesData =
-          await countriesResponse.json();
+        const countriesData = await countriesResponse.json();
+        const indicatorsData = await indicatorsResponse.json();
 
-        const indicatorsData =
-          await indicatorsResponse.json();
+        const countryRows: Country[] = Array.isArray(countriesData)
+          ? countriesData
+          : countriesData.results ?? countriesData.data ?? [];
 
-        const countryRows: Country[] =
-          Array.isArray(countriesData)
-            ? countriesData
-            : countriesData.results ??
-              countriesData.data ??
-              [];
-
-        const indicatorRows: Indicator[] =
-          Array.isArray(indicatorsData)
-            ? indicatorsData
-            : indicatorsData.results ??
-              indicatorsData.data ??
-              [];
+        const indicatorRows: Indicator[] = Array.isArray(indicatorsData)
+          ? indicatorsData
+          : indicatorsData.results ?? indicatorsData.data ?? [];
 
         setCountries(countryRows);
         setIndicators(indicatorRows);
 
         if (indicatorRows.length > 0) {
           const hasGDP = indicatorRows.some(
-            (indicator) =>
-              indicator.code === "GDP"
+            (indicator) => indicator.code === "GDP"
           );
 
-          if (
-            !hasGDP &&
-            !selectedIndicators.length
-          ) {
-            setSelectedIndicators([
-              indicatorRows[0].code,
-            ]);
+          if (!hasGDP && !selectedIndicators.length) {
+            setSelectedIndicators([indicatorRows[0].code]);
           }
         }
       } catch (err) {
@@ -187,14 +166,10 @@ function Trends() {
    */
 
   useEffect(() => {
-    function handleOutsideClick(
-      event: MouseEvent
-    ) {
+    function handleOutsideClick(event: MouseEvent) {
       if (
         controlsRef.current &&
-        !controlsRef.current.contains(
-          event.target as Node
-        )
+        !controlsRef.current.contains(event.target as Node)
       ) {
         setCountriesOpen(false);
         setIndicatorsOpen(false);
@@ -202,10 +177,7 @@ function Trends() {
       }
     }
 
-    document.addEventListener(
-      "mousedown",
-      handleOutsideClick
-    );
+    document.addEventListener("mousedown", handleOutsideClick);
 
     return () => {
       document.removeEventListener(
@@ -243,16 +215,13 @@ function Trends() {
               fetch(
                 `${API}/data/${encodeURIComponent(
                   country
-                )}/${encodeURIComponent(
-                  indicator
-                )}`
+                )}/${encodeURIComponent(indicator)}`
               )
             );
           }
         }
 
-        const responses =
-          await Promise.all(requests);
+        const responses = await Promise.all(requests);
 
         const failed = responses.find(
           (response) => !response.ok
@@ -264,12 +233,9 @@ function Trends() {
           );
         }
 
-        const resultSets =
-          await Promise.all(
-            responses.map((response) =>
-              response.json()
-            )
-          );
+        const resultSets = await Promise.all(
+          responses.map((response) => response.json())
+        );
 
         const allRows: Observation[] = [];
 
@@ -277,18 +243,14 @@ function Trends() {
 
         for (const country of selectedCountries) {
           for (const indicator of selectedIndicators) {
-            const result =
-              resultSets[requestIndex];
+            const result = resultSets[requestIndex];
 
             const rows = Array.isArray(result)
               ? result
-              : result.results ??
-                result.data ??
-                [];
+              : result.results ?? result.data ?? [];
 
             rows.forEach((row: any) => {
               const year = Number(row.year);
-
               const value =
                 row.value === null ||
                 row.value === undefined
@@ -297,8 +259,7 @@ function Trends() {
 
               if (
                 Number.isFinite(year) &&
-                (value === null ||
-                  Number.isFinite(value))
+                (value === null || Number.isFinite(value))
               ) {
                 allRows.push({
                   country,
@@ -315,6 +276,10 @@ function Trends() {
 
         setObservations(allRows);
 
+        /*
+         * Automatically establish a sensible range from
+         * the loaded data.
+         */
         if (allRows.length > 0) {
           const years = allRows
             .map((row) => row.year)
@@ -324,15 +289,13 @@ function Trends() {
           const maximum = Math.max(...years);
 
           setStartYear((current) =>
-            current < minimum ||
-            current > maximum
+            current < minimum || current > maximum
               ? minimum
               : current
           );
 
           setEndYear((current) =>
-            current > maximum ||
-            current < minimum
+            current > maximum || current < minimum
               ? maximum
               : current
           );
@@ -343,7 +306,6 @@ function Trends() {
             ? err.message
             : "Could not load trend data."
         );
-
         setObservations([]);
       } finally {
         setLoadingData(false);
@@ -351,10 +313,7 @@ function Trends() {
     }
 
     loadTrendData();
-  }, [
-    selectedCountries,
-    selectedIndicators,
-  ]);
+  }, [selectedCountries, selectedIndicators]);
 
   /*
    * ---------------------------------------------------------
@@ -368,11 +327,7 @@ function Trends() {
     }
 
     return Array.from(
-      new Set(
-        observations.map(
-          (row) => row.year
-        )
-      )
+      new Set(observations.map((row) => row.year))
     ).sort((a, b) => a - b);
   }, [observations]);
 
@@ -383,92 +338,8 @@ function Trends() {
 
   const maxYear =
     availableYears.length > 0
-      ? availableYears[
-          availableYears.length - 1
-        ]
+      ? availableYears[availableYears.length - 1]
       : 2024;
-
-  /*
-   * ---------------------------------------------------------
-   * CALCULATE YOY % CHANGE
-   * ---------------------------------------------------------
-   */
-
-  const yoyObservations = useMemo(() => {
-    const grouped = new Map<
-      string,
-      Observation[]
-    >();
-
-    observations.forEach((observation) => {
-      const key = `${observation.country} · ${observation.indicator}`;
-
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
-      }
-
-      grouped.get(key)!.push(observation);
-    });
-
-    const result: Observation[] = [];
-
-    grouped.forEach((rows) => {
-      const sortedRows = [...rows].sort(
-        (a, b) => a.year - b.year
-      );
-
-      sortedRows.forEach((row, index) => {
-        if (index === 0) {
-          result.push({
-            ...row,
-            value: null,
-          });
-
-          return;
-        }
-
-        const previous =
-          sortedRows[index - 1];
-
-        if (
-          previous.year !== row.year - 1 ||
-          row.value === null ||
-          previous.value === null ||
-          previous.value === 0
-        ) {
-          result.push({
-            ...row,
-            value: null,
-          });
-
-          return;
-        }
-
-        const yoy =
-          ((row.value - previous.value) /
-            Math.abs(previous.value)) *
-          100;
-
-        result.push({
-          ...row,
-          value: yoy,
-        });
-      });
-    });
-
-    return result;
-  }, [observations]);
-
-  /*
-   * ---------------------------------------------------------
-   * ACTIVE OBSERVATIONS
-   * ---------------------------------------------------------
-   */
-
-  const activeObservations =
-    valueMode === "level"
-      ? observations
-      : yoyObservations;
 
   /*
    * ---------------------------------------------------------
@@ -477,16 +348,12 @@ function Trends() {
    */
 
   const filteredObservations = useMemo(() => {
-    return activeObservations.filter(
+    return observations.filter(
       (row) =>
         row.year >= startYear &&
         row.year <= endYear
     );
-  }, [
-    activeObservations,
-    startYear,
-    endYear,
-  ]);
+  }, [observations, startYear, endYear]);
 
   /*
    * ---------------------------------------------------------
@@ -504,18 +371,12 @@ function Trends() {
     ).sort((a, b) => a - b);
 
     return years.map((year) => {
-      const row: Record<
-        string,
-        number | string | null
-      > = {
+      const row: Record<string, number | string | null> = {
         year,
       };
 
       filteredObservations
-        .filter(
-          (observation) =>
-            observation.year === year
-        )
+        .filter((observation) => observation.year === year)
         .forEach((observation) => {
           const key = `${observation.country} · ${observation.indicator}`;
 
@@ -524,6 +385,7 @@ function Trends() {
             observation.value === undefined
               ? null
               : Number(observation.value);
+        
         });
 
       return row;
@@ -539,13 +401,11 @@ function Trends() {
   const series = useMemo(() => {
     const keys = new Set<string>();
 
-    filteredObservations.forEach(
-      (observation) => {
-        keys.add(
-          `${observation.country} · ${observation.indicator}`
-        );
-      }
-    );
+    filteredObservations.forEach((observation) => {
+      keys.add(
+        `${observation.country} · ${observation.indicator}`
+      );
+    });
 
     return Array.from(keys);
   }, [filteredObservations]);
@@ -567,83 +427,55 @@ function Trends() {
           ""
       )
       .filter(Boolean)
-      .sort((a, b) =>
-        a.localeCompare(b)
-      );
+      .sort((a, b) => a.localeCompare(b));
   }, [countries]);
 
   const filteredCountries = useMemo(() => {
-    const query =
-      countrySearch.trim().toLowerCase();
+    const query = countrySearch.trim().toLowerCase();
 
     if (!query) {
       return countryNames;
     }
 
-    return countryNames.filter(
-      (country) =>
-        country
-          .toLowerCase()
-          .includes(query)
+    return countryNames.filter((country) =>
+      country.toLowerCase().includes(query)
     );
-  }, [
-    countryNames,
-    countrySearch,
-  ]);
+  }, [countryNames, countrySearch]);
 
   const indicatorCodes = useMemo(() => {
     return indicators
-      .map(
-        (indicator) =>
-          indicator.code
-      )
+      .map((indicator) => indicator.code)
       .filter(Boolean)
-      .sort((a, b) =>
-        a.localeCompare(b)
-      );
+      .sort((a, b) => a.localeCompare(b));
   }, [indicators]);
 
-  const filteredIndicators =
-    useMemo(() => {
-      const query =
-        indicatorSearch
-          .trim()
-          .toLowerCase();
+  const filteredIndicators = useMemo(() => {
+    const query = indicatorSearch.trim().toLowerCase();
 
-      if (!query) {
-        return indicatorCodes;
-      }
+    if (!query) {
+      return indicatorCodes;
+    }
 
-      return indicatorCodes.filter(
-        (code) => {
-          const indicator =
-            indicators.find(
-              (item) =>
-                item.code === code
-            );
-
-          return (
-            code
-              .toLowerCase()
-              .includes(query) ||
-            (
-              indicator?.name ?? ""
-            )
-              .toLowerCase()
-              .includes(query) ||
-            (
-              indicator?.category ?? ""
-            )
-              .toLowerCase()
-              .includes(query)
-          );
-        }
+    return indicatorCodes.filter((code) => {
+      const indicator = indicators.find(
+        (item) => item.code === code
       );
-    }, [
-      indicatorCodes,
-      indicatorSearch,
-      indicators,
-    ]);
+
+      return (
+        code.toLowerCase().includes(query) ||
+        (indicator?.name ?? "")
+          .toLowerCase()
+          .includes(query) ||
+        (indicator?.category ?? "")
+          .toLowerCase()
+          .includes(query)
+      );
+    });
+  }, [
+    indicatorCodes,
+    indicatorSearch,
+    indicators,
+  ]);
 
   /*
    * ---------------------------------------------------------
@@ -651,113 +483,49 @@ function Trends() {
    * ---------------------------------------------------------
    */
 
-  function formatValue(
-    value: number | null
-  ) {
-    if (
-      value === null ||
-      !Number.isFinite(value)
-    ) {
+  function formatValue(value: number | null) {
+    if (value === null || !Number.isFinite(value)) {
       return "—";
     }
 
-    return new Intl.NumberFormat(
-      "en-US",
-      {
-        maximumFractionDigits: 2,
-      }
-    ).format(value);
-  }
-
-  function formatPercentage(
-    value: number | null
-  ) {
-    if (
-      value === null ||
-      !Number.isFinite(value)
-    ) {
-      return "—";
-    }
-
-    return `${new Intl.NumberFormat(
-      "en-US",
-      {
-        maximumFractionDigits: 2,
-      }
-    ).format(value)}%`;
+    return new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 2,
+    }).format(value);
   }
 
   async function downloadChart() {
-    if (!chartRef.current) {
-      return;
-    }
+    if (!chartRef.current) return;
 
     try {
       setDownloading(true);
 
-      const image = await toPng(
-        chartRef.current,
-        {
-          cacheBust: true,
-          pixelRatio: 2,
-          backgroundColor: "#ffffff",
-        }
-      );
+      const image = await toPng(chartRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
 
-      const link =
-        document.createElement("a");
+      const link = document.createElement("a");
 
-      link.download =
-        "worlddata-trends.png";
-
+      link.download = "worlddata-trends.png";
       link.href = image;
 
       link.click();
     } catch (err) {
-      console.error(
-        "Could not download chart:",
-        err
-      );
+      console.error("Could not download chart:", err);
     } finally {
       setDownloading(false);
     }
   }
 
-  function getIndicatorName(
-    code: string
-  ) {
+
+  function getIndicatorName(code: string) {
     return (
       indicators.find(
-        (indicator) =>
-          indicator.code === code
+        (indicator) => indicator.code === code
       )?.name ?? code
     );
   }
-
-  /*
-   * ---------------------------------------------------------
-   * CHART TITLE
-   * ---------------------------------------------------------
-   */
-
-  const chartTitle = useMemo(() => {
-    const baseTitle =
-      selectedIndicators.length === 1
-        ? getIndicatorName(
-            selectedIndicators[0]
-          )
-        : `${selectedIndicators.length} indicators`;
-
-    if (valueMode === "yoy") {
-      return `${baseTitle} — YoY % Change`;
-    }
-
-    return baseTitle;
-  }, [
-    selectedIndicators,
-    indicators,
-    valueMode,
-  ]);
 
   /*
    * ---------------------------------------------------------
@@ -769,14 +537,8 @@ function Trends() {
     return (
       <section className="trends-page">
         <div className="trend-loading-page">
-          <Loader2
-            className="spin"
-            size={20}
-          />
-
-          <span>
-            Loading WorldData...
-          </span>
+          <Loader2 className="spin" size={20} />
+          <span>Loading WorldData...</span>
         </div>
       </section>
     );
@@ -799,19 +561,15 @@ function Trends() {
           <h1>Trends</h1>
 
           <p>
-            Explore how economic and social
-            indicators change across
-            countries and over time.
+            Explore how economic and social indicators
+            change across countries and over time.
           </p>
         </div>
       </div>
 
       {error && (
         <div className="trend-error">
-          <strong>
-            Unable to load data
-          </strong>
-
+          <strong>Unable to load data</strong>
           <span>{error}</span>
         </div>
       )}
@@ -820,184 +578,123 @@ function Trends() {
         className="trend-controls"
         ref={controlsRef}
       >
-        {/* =================================================
-            FIRST ROW — COUNTRIES / INDICATORS / YEAR
-            ================================================= */}
+        <MultiSelector
+          title="COUNTRIES"
+          placeholder="Select countries"
+          selected={selectedCountries}
+          options={filteredCountries}
+          search={countrySearch}
+          setSearch={setCountrySearch}
+          open={countriesOpen}
+          setOpen={(open) => {
+            setCountriesOpen(open);
+            setIndicatorsOpen(false);
+            setYearOpen(false);
+          }}
+          onChange={setSelectedCountries}
+        />
 
-        <div className="trend-controls-row trend-controls-row-top">
-          <MultiSelector
-            title="COUNTRIES"
-            placeholder="Select countries"
-            selected={selectedCountries}
-            options={filteredCountries}
-            search={countrySearch}
-            setSearch={setCountrySearch}
-            open={countriesOpen}
-            setOpen={(open) => {
-              setCountriesOpen(open);
-              setIndicatorsOpen(false);
-              setYearOpen(false);
-            }}
-            onChange={setSelectedCountries}
-          />
+        <MultiSelector
+          title="INDICATORS"
+          placeholder="Select indicators"
+          selected={selectedIndicators}
+          options={filteredIndicators}
+          search={indicatorSearch}
+          setSearch={setIndicatorSearch}
+          open={indicatorsOpen}
+          setOpen={(open) => {
+            setIndicatorsOpen(open);
+            setCountriesOpen(false);
+            setYearOpen(false);
+          }}
+          onChange={setSelectedIndicators}
+          formatOption={getIndicatorName}
+        />
 
-          <MultiSelector
-            title="INDICATORS"
-            placeholder="Select indicators"
-            selected={selectedIndicators}
-            options={filteredIndicators}
-            search={indicatorSearch}
-            setSearch={setIndicatorSearch}
-            open={indicatorsOpen}
-            setOpen={(open) => {
-              setIndicatorsOpen(open);
+        <div className="control-block year-filter">
+          <div className="control-label">
+            <span>YEAR RANGE</span>
+          </div>
+
+          <button
+            type="button"
+            className="selection-control year-selection-control"
+            onClick={() => {
+              setYearOpen((open) => !open);
               setCountriesOpen(false);
-              setYearOpen(false);
+              setIndicatorsOpen(false);
             }}
-            onChange={setSelectedIndicators}
-            formatOption={getIndicatorName}
-          />
+          >
+            <span>
+              {startYear} — {endYear}
+            </span>
 
-          <div className="control-block year-filter">
-            <div className="control-label">
-              <span>YEAR RANGE</span>
-            </div>
+            <ChevronDown
+              size={15}
+              className={
+                yearOpen
+                  ? "selector-chevron open"
+                  : "selector-chevron"
+              }
+            />
+          </button>
 
-            <button
-              type="button"
-              className="selection-control year-selection-control"
-              onClick={() => {
-                setYearOpen(
-                  (open) => !open
-                );
-
-                setCountriesOpen(false);
-                setIndicatorsOpen(false);
-              }}
-            >
-              <span>
-                {startYear} — {endYear}
-              </span>
-
-              <ChevronDown
-                size={15}
-                className={
-                  yearOpen
-                    ? "selector-chevron open"
-                    : "selector-chevron"
-                }
-              />
-            </button>
-
-            {yearOpen && (
-              <div className="year-dropdown">
-                <div className="year-dropdown-title">
-                  <span>
-                    YEAR RANGE
-                  </span>
-
-                  <small>
-                    Select the period to
-                    display
-                  </small>
-                </div>
-
-                <div className="year-fields">
-                  <div className="year-input">
-                    <label>FROM</label>
-
-                    <input
-                      type="number"
-                      value={startYear}
-                      min={minYear}
-                      max={endYear}
-                      onChange={(event) =>
-                        setStartYear(
-                          Number(
-                            event.target.value
-                          )
-                        )
-                      }
-                    />
-                  </div>
-
-                  <span className="year-between">
-                    —
-                  </span>
-
-                  <div className="year-input">
-                    <label>TO</label>
-
-                    <input
-                      type="number"
-                      value={endYear}
-                      min={startYear}
-                      max={maxYear}
-                      onChange={(event) =>
-                        setEndYear(
-                          Number(
-                            event.target.value
-                          )
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="year-apply"
-                  onClick={() =>
-                    setYearOpen(false)
-                  }
-                >
-                  Apply range
-                </button>
+          {yearOpen && (
+            <div className="year-dropdown">
+              <div className="year-dropdown-title">
+                <span>YEAR RANGE</span>
+                <small>
+                  Select the period to display
+                </small>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* =================================================
-            SECOND ROW — VALUE
-            ================================================= */}
+              <div className="year-fields">
+                <div className="year-input">
+                  <label>FROM</label>
 
-        <div className="trend-controls-row trend-controls-row-value">
-          <div className="trend-value-type">
-            <div className="control-label">
-              <span>VALUE</span>
-            </div>
+                  <input
+                    type="number"
+                    value={startYear}
+                    min={minYear}
+                    max={endYear}
+                    onChange={(event) =>
+                      setStartYear(
+                        Number(event.target.value)
+                      )
+                    }
+                  />
+                </div>
 
-            <div className="trend-value-toggle">
+                <span className="year-between">
+                  —
+                </span>
+
+                <div className="year-input">
+                  <label>TO</label>
+
+                  <input
+                    type="number"
+                    value={endYear}
+                    min={startYear}
+                    max={maxYear}
+                    onChange={(event) =>
+                      setEndYear(
+                        Number(event.target.value)
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
               <button
                 type="button"
-                className={
-                  valueMode === "level"
-                    ? "trend-value-button active"
-                    : "trend-value-button"
-                }
-                onClick={() =>
-                  setValueMode("level")
-                }
+                className="year-apply"
+                onClick={() => setYearOpen(false)}
               >
-                Level
-              </button>
-
-              <button
-                type="button"
-                className={
-                  valueMode === "yoy"
-                    ? "trend-value-button active"
-                    : "trend-value-button"
-                }
-                onClick={() =>
-                  setValueMode("yoy")
-                }
-              >
-                YoY % Change
+                Apply range
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -1009,14 +706,12 @@ function Trends() {
           </div>
 
           <h2>
-            Select countries and
-            indicators
+            Select countries and indicators
           </h2>
 
           <p>
-            Choose at least one country
-            and one indicator to build a
-            time series.
+            Choose at least one country and one
+            indicator to build a time series.
           </p>
         </div>
       ) : (
@@ -1027,24 +722,23 @@ function Trends() {
                 TIME SERIES
               </div>
 
-              <h2>{chartTitle}</h2>
+              <h2>
+                {selectedIndicators.length === 1
+                  ? getIndicatorName(
+                      selectedIndicators[0]
+                    )
+                  : `${selectedIndicators.length} indicators`}
+              </h2>
 
               <p>
                 {selectedCountries.length}{" "}
-                {selectedCountries.length ===
-                1
+                {selectedCountries.length === 1
                   ? "country"
                   : "countries"}{" "}
-                ·{" "}
-                {selectedIndicators.length}{" "}
-                {selectedIndicators.length ===
-                1
+                · {selectedIndicators.length}{" "}
+                {selectedIndicators.length === 1
                   ? "indicator"
-                  : "indicators"}{" "}
-                ·{" "}
-                {valueMode === "yoy"
-                  ? "annual % change"
-                  : "level"}
+                  : "indicators"}
               </p>
             </div>
 
@@ -1058,17 +752,18 @@ function Trends() {
                 {downloading
                   ? "Exporting..."
                   : "Download PNG"}
-              </button>
+                </button>
 
-              <span className="trend-period">
-                {startYear} — {endYear}
-              </span>
-            </div>
+                <span className="trend-period">
+                  {startYear} — {endYear}
+                </span>
+              </div>
           </div>
 
-          <div
+          <div 
             className="chart-container"
             ref={chartRef}
+          
           >
             {loadingData ? (
               <div className="trend-loading">
@@ -1076,7 +771,6 @@ function Trends() {
                   className="spin"
                   size={18}
                 />
-
                 <span>
                   Loading time series...
                 </span>
@@ -1084,15 +778,17 @@ function Trends() {
             ) : chartData.length === 0 ? (
               <div className="trend-loading">
                 <span>
-                  No observations available
-                  for this selection.
+                  No observations available for
+                  this selection.
                 </span>
               </div>
             ) : (
+          
               <ResponsiveContainer
                 width="100%"
                 height={420}
               >
+                
                 <LineChart
                   data={chartData}
                   margin={{
@@ -1128,37 +824,23 @@ function Trends() {
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) =>
-                      valueMode === "yoy"
-                        ? `${Number(
-                            value
-                          ).toFixed(0)}%`
-                        : formatCompactValue(
-                            Number(value)
-                          )
+                      formatCompactValue(
+                        Number(value)
+                      )
                     }
                   />
 
                   <Tooltip
-                    formatter={(value) => {
-                      const numericValue =
-                        typeof value ===
-                        "number"
+                    formatter={(value) =>
+                      formatValue(
+                        typeof value === "number"
                           ? value
-                          : Number(value);
-
-                      return valueMode ===
-                        "yoy"
-                        ? formatPercentage(
-                            numericValue
-                          )
-                        : formatValue(
-                            numericValue
-                          );
-                    }}
+                          : Number(value)
+                      )
+                    }
                     contentStyle={{
                       borderRadius: 10,
-                      border:
-                        "1px solid #e2e8f0",
+                      border: "1px solid #e2e8f0",
                       boxShadow:
                         "0 10px 30px rgba(15,23,42,0.12)",
                       fontSize: 12,
@@ -1173,20 +855,15 @@ function Trends() {
                     }}
                     onClick={(payload: any) => {
                       const key = String(
-                        payload?.dataKey ??
-                          payload?.value ??
-                          ""
+                        payload?.dataKey ?? payload?.value ?? ""
                       );
 
                       if (!key) return;
 
-                      setHiddenSeries(
-                        (current) => ({
-                          ...current,
-                          [key]:
-                            !current[key],
-                        })
-                      );
+                      setHiddenSeries((current) => ({
+                        ...current,
+                        [key]: !current[key],
+                      }));
                     }}
                   />
 
@@ -1197,33 +874,21 @@ function Trends() {
                     travellerWidth={8}
                   />
 
-                  {series.map(
-                    (seriesKey, index) => (
-                      <Line
-                        key={seriesKey}
-                        type="monotone"
-                        dataKey={seriesKey}
-                        name={seriesKey}
-                        stroke={getChartColor(
-                          index
-                        )}
-                        strokeWidth={2.5}
-                        dot={false}
-                        activeDot={{
-                          r: 5,
-                        }}
-                        connectNulls
-                        isAnimationActive={
-                          false
-                        }
-                        hide={
-                          hiddenSeries[
-                            seriesKey
-                          ]
-                        }
-                      />
-                    )
-                  )}
+                  {series.map((seriesKey, index) => (
+                    <Line
+                      key={seriesKey}
+                      type="monotone"
+                      dataKey={seriesKey}
+                      name={seriesKey}
+                      stroke={getChartColor(index)}
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={{r: 5}}    
+                      connectNulls
+                      isAnimationActive={false}
+                      hide={hiddenSeries[seriesKey]}
+                    />
+                  ))}
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -1257,9 +922,7 @@ function MultiSelector({
   open: boolean;
   setOpen: (value: boolean) => void;
 }) {
-  function toggleOption(
-    option: string
-  ) {
+  function toggleOption(option: string) {
     if (selected.includes(option)) {
       onChange(
         selected.filter(
@@ -1267,16 +930,11 @@ function MultiSelector({
         )
       );
     } else {
-      onChange([
-        ...selected,
-        option,
-      ]);
+      onChange([...selected, option]);
     }
   }
 
-  function removeOption(
-    option: string
-  ) {
+  function removeOption(option: string) {
     onChange(
       selected.filter(
         (item) => item !== option
@@ -1284,31 +942,17 @@ function MultiSelector({
     );
   }
 
-  const orderedOptions = [
-    ...options,
-  ].sort((a, b) => {
-    const aSelected =
-      selected.includes(a);
+  const orderedOptions = [...options].sort(
+    (a, b) => {
+      const aSelected = selected.includes(a);
+      const bSelected = selected.includes(b);
 
-    const bSelected =
-      selected.includes(b);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
 
-    if (
-      aSelected &&
-      !bSelected
-    ) {
-      return -1;
+      return a.localeCompare(b);
     }
-
-    if (
-      !aSelected &&
-      bSelected
-    ) {
-      return 1;
-    }
-
-    return a.localeCompare(b);
-  });
+  );
 
   return (
     <div className="control-block">
@@ -1318,9 +962,7 @@ function MultiSelector({
         {selected.length > 0 && (
           <button
             type="button"
-            onClick={() =>
-              onChange([])
-            }
+            onClick={() => onChange([])}
           >
             Clear
           </button>
@@ -1330,9 +972,7 @@ function MultiSelector({
       <button
         type="button"
         className="selection-control"
-        onClick={() =>
-          setOpen(!open)
-        }
+        onClick={() => setOpen(!open)}
       >
         <div className="selection-control-content">
           {selected.length === 0 ? (
@@ -1341,32 +981,23 @@ function MultiSelector({
             </span>
           ) : (
             <div className="selected-tags">
-              {selected
-                .slice(0, 2)
-                .map((item) => (
-                  <span
-                    key={item}
-                    className="selection-tag"
-                    onClick={(
-                      event
-                    ) => {
-                      event.stopPropagation();
-                      removeOption(
-                        item
-                      );
-                    }}
-                  >
-                    {item}
-                    <X size={12} />
-                  </span>
-                ))}
+              {selected.slice(0, 2).map((item) => (
+                <span
+                  key={item}
+                  className="selection-tag"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeOption(item);
+                  }}
+                >
+                  {item}
+                  <X size={12} />
+                </span>
+              ))}
 
-              {selected.length >
-                2 && (
+              {selected.length > 2 && (
                 <span className="selection-more">
-                  +
-                  {selected.length -
-                    2}
+                  +{selected.length - 2}
                 </span>
               )}
             </div>
@@ -1392,9 +1023,7 @@ function MultiSelector({
               autoFocus
               value={search}
               onChange={(event) =>
-                setSearch(
-                  event.target.value
-                )
+                setSearch(event.target.value)
               }
               placeholder={`Search ${title.toLowerCase()}...`}
             />
@@ -1403,9 +1032,7 @@ function MultiSelector({
               <button
                 type="button"
                 className="search-clear"
-                onClick={() =>
-                  setSearch("")
-                }
+                onClick={() => setSearch("")}
               >
                 <X size={13} />
               </button>
@@ -1418,55 +1045,43 @@ function MultiSelector({
                 No results found.
               </div>
             ) : (
-              orderedOptions.map(
-                (option) => {
-                  const isSelected =
-                    selected.includes(
-                      option
-                    );
+              orderedOptions.map((option) => {
+                const isSelected =
+                  selected.includes(option);
 
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      className={
-                        isSelected
-                          ? "selector-option selected"
-                          : "selector-option"
-                      }
-                      onClick={() =>
-                        toggleOption(
-                          option
-                        )
-                      }
-                    >
-                      <div>
-                        <strong>
-                          {option}
-                        </strong>
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    className={
+                      isSelected
+                        ? "selector-option selected"
+                        : "selector-option"
+                    }
+                    onClick={() =>
+                      toggleOption(option)
+                    }
+                  >
+                    <div>
+                      <strong>
+                        {option}
+                      </strong>
 
-                        {formatOption &&
-                          formatOption(
-                            option
-                          ) !==
-                            option && (
-                            <small>
-                              {formatOption(
-                                option
-                              )}
-                            </small>
-                          )}
-                      </div>
+                      {formatOption &&
+                        formatOption(option) !==
+                          option && (
+                          <small>
+                            {formatOption(option)}
+                          </small>
+                        )}
+                    </div>
 
-                      {isSelected && (
-                        <Check
-                          size={15}
-                        />
-                      )}
-                    </button>
-                  );
-                }
-              )
+                    {isSelected && (
+                      <Check size={15} />
+                    )}
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -1481,53 +1096,33 @@ function MultiSelector({
  * =========================================================
  */
 
-function formatCompactValue(
-  value: number
-) {
+function formatCompactValue(value: number) {
   if (!Number.isFinite(value)) {
     return "";
   }
 
   const absolute = Math.abs(value);
 
-  if (
-    absolute >=
-    1_000_000_000
-  ) {
-    return `${(
-      value /
-      1_000_000_000
-    ).toFixed(1)}B`;
+  if (absolute >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toFixed(
+      1
+    )}B`;
   }
 
-  if (
-    absolute >=
-    1_000_000
-  ) {
-    return `${(
-      value /
-      1_000_000
-    ).toFixed(1)}M`;
+  if (absolute >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(
+      1
+    )}M`;
   }
 
-  if (
-    absolute >=
-    1_000
-  ) {
-    return `${(
-      value /
-      1_000
-    ).toFixed(1)}K`;
+  if (absolute >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}K`;
   }
 
-  return value.toLocaleString(
-    "en-US"
-  );
+  return value.toLocaleString("en-US");
 }
 
-function getChartColor(
-  index: number
-) {
+function getChartColor(index: number) {
   const colors = [
     "#2563eb",
     "#dc2626",
@@ -1541,10 +1136,7 @@ function getChartColor(
     "#ea580c",
   ];
 
-  return colors[
-    index % colors.length
-  ];
+  return colors[index % colors.length];
 }
 
 export default Trends;
-
