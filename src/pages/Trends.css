@@ -46,11 +46,22 @@
 
   display: grid;
 
-  /* TWO COLUMNS */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /*
+     DESKTOP LAYOUT
 
-  /* TWO ROWS */
-  grid-template-rows: auto auto;
+     ROW 1:
+     Countries | Indicators
+
+     ROW 2:
+     Value     | Year Range
+  */
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  grid-template-areas:
+    "countries indicators"
+    "value     year";
 
   gap: 16px;
 
@@ -68,44 +79,44 @@
   box-shadow:
     0 5px 20px rgba(15, 23, 42, 0.035);
 
-  isolation: auto;
+  isolation: isolate;
 }
 
-/* ---------------------------------------------------------
-   Explicit positioning
+/* =========================================================
+   EXPLICIT CONTROL PLACEMENT
+   ========================================================= */
 
-   ROW 1:
-   Countries | Indicators
-
-   ROW 2:
-   Value     | Year
-   --------------------------------------------------------- */
-
-.trend-controls > .control-block:nth-child(1) {
-  grid-column: 1;
-  grid-row: 1;
+/* 1 — Countries */
+.trend-controls > :nth-child(1) {
+  grid-area: countries;
 }
 
-.trend-controls > .control-block:nth-child(2) {
-  grid-column: 2;
-  grid-row: 1;
+/* 2 — Indicators */
+.trend-controls > :nth-child(2) {
+  grid-area: indicators;
 }
 
-.trend-controls > .trend-value-type {
-  grid-column: 1;
-  grid-row: 2;
+/* 3 — Value */
+.trend-controls > :nth-child(3) {
+  grid-area: value;
 }
 
-.trend-controls > .year-filter {
-  grid-column: 2;
-  grid-row: 2;
+/* 4 — Year Range */
+.trend-controls > :nth-child(4) {
+  grid-area: year;
 }
+
+/* =========================================================
+   CONTROL BLOCK
+   ========================================================= */
 
 .control-block {
   position: relative;
   z-index: 200;
+
   width: 100%;
   min-width: 0;
+
   box-sizing: border-box;
 }
 
@@ -127,11 +138,15 @@
 
 .control-label button {
   padding: 0;
+
   border: 0;
+
   background: transparent;
   color: var(--muted);
+
   font-family: inherit;
   font-size: 10px;
+
   cursor: pointer;
 }
 
@@ -151,9 +166,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
 
+  gap: 10px;
   padding: 5px 10px;
+
   box-sizing: border-box;
 
   border: 1px solid var(--border);
@@ -191,6 +207,7 @@
 .selection-control-content {
   min-width: 0;
   flex: 1;
+
   overflow: hidden;
   text-align: left;
 }
@@ -202,8 +219,11 @@
 
 .selector-chevron {
   flex-shrink: 0;
+
   color: var(--muted);
-  transition: transform 0.15s ease;
+
+  transition:
+    transform 0.15s ease;
 }
 
 .selector-chevron.open {
@@ -217,6 +237,7 @@
 .selected-tags {
   display: flex;
   align-items: center;
+
   flex-wrap: nowrap;
   gap: 5px;
 
@@ -227,9 +248,11 @@
 .selection-tag {
   display: inline-flex;
   align-items: center;
+
   gap: 5px;
 
   flex-shrink: 0;
+
   max-width: 145px;
 
   padding: 5px 7px;
@@ -292,6 +315,7 @@
   max-width: 100%;
 
   overflow: hidden;
+
   box-sizing: border-box;
 
   border: 1px solid #d9e0e8;
@@ -309,9 +333,11 @@
 .selector-search {
   display: flex;
   align-items: center;
+
   gap: 8px;
 
   height: 43px;
+
   padding: 0 12px;
 
   box-sizing: border-box;
@@ -350,8 +376,8 @@
   padding: 2px;
 
   border: 0;
-  background: transparent;
 
+  background: transparent;
   color: var(--muted);
 
   cursor: pointer;
@@ -359,6 +385,7 @@
 
 .selector-list {
   max-height: 330px;
+
   overflow-y: auto;
 
   padding: 5px;
@@ -381,6 +408,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 15px;
 
   padding: 9px 10px;
@@ -414,6 +442,7 @@
   display: block;
 
   overflow: hidden;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 
@@ -427,6 +456,7 @@
   margin-top: 2px;
 
   overflow: hidden;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 
@@ -467,9 +497,13 @@
   height: 42px;
 
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
+
+  grid-template-columns:
+    1fr
+    1.35fr;
 
   align-items: center;
+
   gap: 3px;
 
   padding: 3px;
@@ -495,6 +529,7 @@
   color: var(--muted);
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 650;
 
@@ -544,6 +579,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 8px;
 
   padding: 5px 11px;
@@ -558,6 +594,7 @@
   min-width: 0;
 
   overflow: hidden;
+
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -577,6 +614,7 @@
   max-width: 200px;
 
   overflow: hidden;
+
   box-sizing: border-box;
 
   border: 1px solid #d9e0e8;
@@ -631,6 +669,7 @@
     minmax(0, 1fr);
 
   align-items: end;
+
   gap: 8px;
 
   margin: 0;
@@ -677,6 +716,7 @@
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 12px;
   font-weight: 600;
 }
@@ -704,6 +744,7 @@
 
 .year-apply {
   width: calc(100% - 26px);
+
   height: 36px;
 
   margin: 0 13px 13px;
@@ -717,6 +758,7 @@
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 650;
 
@@ -742,6 +784,7 @@
   width: 100%;
 
   overflow: hidden;
+
   box-sizing: border-box;
 
   border: 1px solid var(--border);
@@ -754,6 +797,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 25px;
 
   padding: 27px 30px 10px;
@@ -818,6 +862,7 @@
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 650;
 
@@ -908,6 +953,7 @@
 .trend-error {
   display: flex;
   flex-direction: column;
+
   gap: 4px;
 
   padding: 15px 17px;
@@ -967,25 +1013,6 @@
    RESPONSIVE
    ========================================================= */
 
-@media (max-width: 1150px) {
-  .trend-controls {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .trend-value-type,
-  .year-filter {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
-
-  .year-selection-control {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
-}
-
 @media (max-width: 700px) {
   .trends-heading h1 {
     font-size: 32px;
@@ -993,34 +1020,18 @@
 
   .trend-controls {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
 
-  .trend-controls > .control-block:nth-child(1),
-  .trend-controls > .control-block:nth-child(2),
-  .trend-controls > .trend-value-type,
-  .trend-controls > .year-filter {
-    grid-column: 1;
-  }
-
-  .trend-controls > .control-block:nth-child(1) {
-    grid-row: 1;
-  }
-
-  .trend-controls > .control-block:nth-child(2) {
-    grid-row: 2;
-  }
-
-  .trend-controls > .trend-value-type {
-    grid-row: 3;
-  }
-
-  .trend-controls > .year-filter {
-    grid-row: 4;
+    grid-template-areas:
+      "countries"
+      "indicators"
+      "value"
+      "year";
   }
 
   .trend-value-toggle {
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns:
+      1fr
+      1.2fr;
   }
 
   .trend-card-header {
@@ -1041,6 +1052,7 @@
   .chart-container {
     height: 370px;
     min-height: 370px;
+
     padding: 10px 5px 0;
   }
 }
