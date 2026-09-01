@@ -10,7 +10,6 @@
   box-sizing: border-box;
 }
 
-
 /* =========================================================
    HEADER
    ========================================================= */
@@ -37,15 +36,19 @@
   line-height: 1.6;
 }
 
-
 /* =========================================================
    CONTROLS
+   IMPORTANT:
+   DESKTOP =
+
+   ROW 1:  COUNTRIES     | INDICATORS
+   ROW 2:  VALUE         | YEAR
+
    ========================================================= */
 
 .trend-controls {
   position: relative;
   z-index: 100;
-
   display: grid;
 
   /* EXACTLY TWO COLUMNS */
@@ -73,56 +76,49 @@
   isolation: isolate;
 }
 
-
-/* =========================================================
-   CONTROL ORDER
-
-   DOM ORDER ASSUMED:
+/*
+   We use the actual order of the four controls:
 
    1 = Countries
-   2 = Value
-   3 = Indicators
+   2 = Indicators
+   3 = Value
    4 = Year
 
-   VISUAL RESULT:
+   So:
 
-   Countries  | Indicators
-   Value      | Year
-   ========================================================= */
+   1 → row 1 / column 1
+   2 → row 1 / column 2
+   3 → row 2 / column 1
+   4 → row 2 / column 2
+*/
 
-/* COUNTRIES */
-.trend-controls > .control-block:nth-child(1) {
+.trend-controls > *:nth-child(1) {
   grid-column: 1;
   grid-row: 1;
 }
 
-/* VALUE */
-.trend-controls > .control-block:nth-child(2),
-.trend-controls > .trend-value-type:nth-child(2) {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-/* INDICATORS */
-.trend-controls > .control-block:nth-child(3) {
+.trend-controls > *:nth-child(2) {
   grid-column: 2;
   grid-row: 1;
 }
 
-/* YEAR */
-.trend-controls > .year-filter {
-  grid-column: 2;
+.trend-controls > *:nth-child(3) {
+  grid-column: 1;
   grid-row: 2;
 }
 
+.trend-controls > *:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+}
 
 /* =========================================================
-   GENERIC CONTROL BLOCK
+   CONTROL BLOCK
    ========================================================= */
 
 .control-block {
   position: relative;
-  z-index: 200;
+  z-index: 10;
 
   width: 100%;
   min-width: 0;
@@ -130,9 +126,14 @@
   box-sizing: border-box;
 }
 
+/* Make sure selector controls cannot escape their grid cell */
+.control-block > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
 /* =========================================================
-   CONTROL LABEL
+   LABEL
    ========================================================= */
 
 .control-label {
@@ -169,7 +170,6 @@
   color: var(--text);
 }
 
-
 /* =========================================================
    MAIN SELECTOR BUTTON
    ========================================================= */
@@ -184,6 +184,7 @@
   justify-content: space-between;
 
   gap: 10px;
+
   padding: 5px 10px;
 
   box-sizing: border-box;
@@ -245,7 +246,6 @@
   transform: rotate(180deg);
 }
 
-
 /* =========================================================
    SELECTED TAGS
    ========================================================= */
@@ -255,6 +255,7 @@
   align-items: center;
 
   flex-wrap: nowrap;
+
   gap: 5px;
 
   min-width: 0;
@@ -269,6 +270,7 @@
   gap: 5px;
 
   flex-shrink: 0;
+
   max-width: 145px;
 
   padding: 5px 7px;
@@ -316,13 +318,13 @@
   font-weight: 700;
 }
 
-
 /* =========================================================
    COUNTRY / INDICATOR DROPDOWN
    ========================================================= */
 
 .selector-panel {
   position: absolute;
+
   z-index: 99999;
 
   top: calc(100% + 8px);
@@ -399,6 +401,10 @@
 
   cursor: pointer;
 }
+
+/* =========================================================
+   DROPDOWN LIST
+   ========================================================= */
 
 .selector-list {
   max-height: 330px;
@@ -496,7 +502,6 @@
   font-size: 12px;
 }
 
-
 /* =========================================================
    VALUE TYPE / YoY TOGGLE
    ========================================================= */
@@ -545,6 +550,7 @@
   color: var(--muted);
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 650;
 
@@ -569,7 +575,6 @@
   box-shadow:
     0 1px 3px rgba(15, 23, 42, 0.08);
 }
-
 
 /* =========================================================
    YEAR RANGE
@@ -607,11 +612,13 @@
 
 .year-selection-control > span:first-child {
   flex: 1;
+
   min-width: 0;
 
   overflow: hidden;
 
   white-space: nowrap;
+
   text-overflow: ellipsis;
 }
 
@@ -621,13 +628,15 @@
 
 .year-dropdown {
   position: absolute;
+
   z-index: 99999;
 
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
+  left: auto;
 
-  width: 200px;
-  max-width: 200px;
+  width: 220px;
+  max-width: 220px;
 
   overflow: hidden;
 
@@ -732,6 +741,7 @@
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 12px;
   font-weight: 600;
 }
@@ -753,11 +763,13 @@
   color: var(--muted);
 
   font-size: 12px;
+
   text-align: center;
 }
 
 .year-apply {
   width: calc(100% - 26px);
+
   height: 36px;
 
   margin: 0 13px 13px;
@@ -771,6 +783,7 @@
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 650;
 
@@ -785,13 +798,13 @@
   background: var(--background);
 }
 
-
 /* =========================================================
    CHART CARD
    ========================================================= */
 
 .trend-card {
   position: relative;
+
   z-index: 1;
 
   width: 100%;
@@ -849,7 +862,6 @@
   font-weight: 600;
 }
 
-
 /* =========================================================
    CHART ACTIONS
    ========================================================= */
@@ -876,6 +888,7 @@
   color: var(--text);
 
   font-family: inherit;
+
   font-size: 11px;
   font-weight: 650;
 
@@ -897,7 +910,6 @@
   cursor: default;
 }
 
-
 /* =========================================================
    CHART
    ========================================================= */
@@ -914,7 +926,6 @@
 
   box-sizing: border-box;
 }
-
 
 /* =========================================================
    LOADING
@@ -961,7 +972,6 @@
   }
 }
 
-
 /* =========================================================
    ERROR
    ========================================================= */
@@ -973,6 +983,7 @@
   gap: 4px;
 
   padding: 15px 17px;
+
   margin-bottom: 20px;
 
   border: 1px solid #fecaca;
@@ -983,14 +994,15 @@
 
 .trend-error strong {
   color: #991b1b;
+
   font-size: 13px;
 }
 
 .trend-error span {
   color: #b91c1c;
+
   font-size: 12px;
 }
-
 
 /* =========================================================
    EMPTY STATE
@@ -1027,32 +1039,15 @@
   line-height: 1.6;
 }
 
-
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
 @media (max-width: 1150px) {
-
   .trend-controls {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-  }
-
-  .trend-value-type,
-  .year-filter {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
-
-  .year-selection-control {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
   }
 }
-
 
 @media (max-width: 700px) {
 
@@ -1060,30 +1055,30 @@
     font-size: 32px;
   }
 
+  /* MOBILE = ONE COLUMN */
   .trend-controls {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
+    grid-template-rows: auto auto auto auto;
+
+    gap: 14px;
   }
 
-  /* MOBILE = ONE COLUMN */
-
-  .trend-controls > .control-block:nth-child(1) {
+  .trend-controls > *:nth-child(1) {
     grid-column: 1;
     grid-row: 1;
   }
 
-  .trend-controls > .control-block:nth-child(2),
-  .trend-controls > .trend-value-type:nth-child(2) {
+  .trend-controls > *:nth-child(2) {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .trend-controls > .control-block:nth-child(3) {
+  .trend-controls > *:nth-child(3) {
     grid-column: 1;
     grid-row: 3;
   }
 
-  .trend-controls > .year-filter {
+  .trend-controls > *:nth-child(4) {
     grid-column: 1;
     grid-row: 4;
   }
@@ -1115,5 +1110,10 @@
     min-height: 370px;
 
     padding: 10px 5px 0;
+  }
+
+  .year-dropdown {
+    right: 0;
+    left: auto;
   }
 }
