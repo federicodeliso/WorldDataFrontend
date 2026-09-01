@@ -315,11 +315,6 @@ function Trends() {
 
         setObservations(allRows);
 
-        /*
-         * Automatically establish a sensible range
-         * from the loaded data.
-         */
-
         if (allRows.length > 0) {
           const years = allRows
             .map((row) => row.year)
@@ -397,20 +392,6 @@ function Trends() {
    * ---------------------------------------------------------
    * CALCULATE YOY % CHANGE
    * ---------------------------------------------------------
-   *
-   * YoY is calculated from the COMPLETE loaded series
-   * before the selected year range is applied.
-   *
-   * Example:
-   *
-   * 2020 GDP = 100
-   * 2021 GDP = 110
-   *
-   * YoY 2021 = ((110 - 100) / 100) * 100
-   *           = 10%
-   *
-   * The first available year has no YoY value because
-   * there is no previous year available.
    */
 
   const yoyObservations = useMemo(() => {
@@ -437,10 +418,6 @@ function Trends() {
       );
 
       sortedRows.forEach((row, index) => {
-        /*
-         * No previous observation means no YoY.
-         */
-
         if (index === 0) {
           result.push({
             ...row,
@@ -452,14 +429,6 @@ function Trends() {
 
         const previous =
           sortedRows[index - 1];
-
-        /*
-         * Only calculate YoY when the previous
-         * observation is actually the previous year.
-         *
-         * This prevents calculating a "YoY" rate
-         * from, for example, 2020 → 2022.
-         */
 
         if (
           previous.year !== row.year - 1 ||
@@ -625,7 +594,8 @@ function Trends() {
   const indicatorCodes = useMemo(() => {
     return indicators
       .map(
-        (indicator) => indicator.code
+        (indicator) =>
+          indicator.code
       )
       .filter(Boolean)
       .sort((a, b) =>
@@ -883,34 +853,40 @@ function Trends() {
           formatOption={getIndicatorName}
         />
 
-        <div className="control-block year-filter">
-        
-        </div>
-
         <div className="trend-value-type">
           <div className="control-label">
             <span>VALUE</span>
           </div>
 
-          <button
-            type="button"
-            className={
-              valueMode === "yoy"
-                ? "value-type-button active"
-                : "value-type-button"
-            }
-            onClick={() =>
-              setValueMode((current) =>
-                current === "level"
-                  ? "yoy"
-                  : "level"
-              )
-            }
-          >
-            {valueMode === "yoy"
-              ? "YoY % Change"
-              : "Level"}
-          </button>
+          <div className="trend-value-toggle">
+            <button
+              type="button"
+              className={
+                valueMode === "level"
+                  ? "trend-value-button active"
+                  : "trend-value-button"
+              }
+              onClick={() =>
+                setValueMode("level")
+              }
+            >
+              Level
+            </button>
+
+            <button
+              type="button"
+              className={
+                valueMode === "yoy"
+                  ? "trend-value-button active"
+                  : "trend-value-button"
+              }
+              onClick={() =>
+                setValueMode("yoy")
+              }
+            >
+              YoY % Change
+            </button>
+          </div>
         </div>
 
         <div className="control-block year-filter">
@@ -1559,3 +1535,4 @@ function getChartColor(
 }
 
 export default Trends;
+

@@ -43,40 +43,30 @@
 .trend-controls {
   position: relative;
   z-index: 100;
-
   display: grid;
-
   grid-template-columns:
     minmax(0, 1fr)
     minmax(0, 1fr)
-    285px;
-
+    minmax(180px, 230px)
+    200px;
   gap: 16px;
-
   width: 100%;
   margin-bottom: 24px;
   padding: 18px;
-
   box-sizing: border-box;
-
   border: 1px solid var(--border);
   border-radius: 18px;
-
   background: var(--surface);
-
   box-shadow:
     0 5px 20px rgba(15, 23, 42, 0.035);
-
   isolation: auto;
 }
 
 .control-block {
   position: relative;
   z-index: 200;
-
   width: 100%;
   min-width: 0;
-
   box-sizing: border-box;
 }
 
@@ -84,14 +74,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   height: 18px;
   margin-bottom: 7px;
 }
 
 .control-label > span {
   color: var(--text);
-
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.1em;
@@ -99,15 +87,11 @@
 
 .control-label button {
   padding: 0;
-
   border: 0;
-
   background: transparent;
   color: var(--muted);
-
   font-family: inherit;
   font-size: 10px;
-
   cursor: pointer;
 }
 
@@ -123,29 +107,20 @@
   width: 100%;
   min-width: 0;
   min-height: 40px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 10px;
-
   padding: 5px 10px;
-
   box-sizing: border-box;
-
   border: 1px solid var(--border);
   border-radius: 10px;
-
   background: var(--background);
   color: var(--text);
-
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-
   cursor: pointer;
-
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
@@ -159,9 +134,7 @@
 
 .selection-control:focus {
   outline: none;
-
   border-color: #64748b;
-
   box-shadow:
     0 0 0 3px rgba(100, 116, 139, 0.08);
 }
@@ -169,9 +142,7 @@
 .selection-control-content {
   min-width: 0;
   flex: 1;
-
   overflow: hidden;
-
   text-align: left;
 }
 
@@ -182,9 +153,7 @@
 
 .selector-chevron {
   flex-shrink: 0;
-
   color: var(--muted);
-
   transition: transform 0.15s ease;
 }
 
@@ -199,38 +168,26 @@
 .selected-tags {
   display: flex;
   align-items: center;
-
   flex-wrap: nowrap;
   gap: 5px;
-
   min-width: 0;
-
   overflow: hidden;
 }
 
 .selection-tag {
   display: inline-flex;
   align-items: center;
-
   gap: 5px;
-
   flex-shrink: 0;
-
   max-width: 145px;
-
   padding: 5px 7px;
-
   border: 1px solid #d7dee8;
   border-radius: 7px;
-
   background: var(--surface);
   color: var(--text);
-
   font-size: 10px;
   font-weight: 600;
-
   cursor: pointer;
-
   transition:
     border-color 0.12s ease,
     background 0.12s ease;
@@ -249,16 +206,11 @@
 .selection-more {
   display: inline-flex;
   align-items: center;
-
   flex-shrink: 0;
-
   padding: 5px 7px;
-
   border-radius: 7px;
-
   background: #e9edf3;
   color: #64748b;
-
   font-size: 10px;
   font-weight: 700;
 }
@@ -269,25 +221,17 @@
 
 .selector-panel {
   position: absolute;
-
   z-index: 99999;
-
   top: calc(100% + 8px);
   left: 0;
-
   width: 100%;
   max-width: 100%;
-
   overflow: hidden;
-
   box-sizing: border-box;
-
   border: 1px solid #d9e0e8;
   border-radius: 12px;
-
   background: #ffffff;
   opacity: 1;
-
   box-shadow:
     0 20px 50px rgba(15, 23, 42, 0.18),
     0 6px 16px rgba(15, 23, 42, 0.07);
@@ -296,32 +240,22 @@
 .selector-search {
   display: flex;
   align-items: center;
-
   gap: 8px;
-
   height: 43px;
-
   padding: 0 12px;
-
   box-sizing: border-box;
-
   border-bottom: 1px solid var(--border);
-
   background: #ffffff;
-
   color: var(--muted);
 }
 
 .selector-search input {
   width: 100%;
   min-width: 0;
-
   border: 0;
   outline: none;
-
   background: transparent;
   color: var(--text);
-
   font-family: inherit;
   font-size: 12px;
 }
@@ -334,26 +268,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   flex-shrink: 0;
-
   padding: 2px;
-
   border: 0;
-
   background: transparent;
   color: var(--muted);
-
   cursor: pointer;
 }
 
 .selector-list {
   max-height: 330px;
-
   overflow-y: auto;
-
   padding: 5px;
-
   background: #ffffff;
 }
 
@@ -368,25 +294,17 @@
 
 .selector-option {
   width: 100%;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 15px;
-
   padding: 9px 10px;
-
   box-sizing: border-box;
-
   border: 0;
   border-radius: 8px;
-
   background: #ffffff;
   color: var(--text);
-
   text-align: left;
-
   cursor: pointer;
 }
 
@@ -404,28 +322,20 @@
 
 .selector-option strong {
   display: block;
-
   overflow: hidden;
-
   text-overflow: ellipsis;
   white-space: nowrap;
-
   font-size: 12px;
   font-weight: 600;
 }
 
 .selector-option small {
   display: block;
-
   margin-top: 2px;
-
   overflow: hidden;
-
   text-overflow: ellipsis;
   white-space: nowrap;
-
   color: var(--muted);
-
   font-size: 10px;
 }
 
@@ -435,262 +345,47 @@
 
 .selector-empty {
   padding: 30px 15px;
-
   color: var(--muted);
-
   text-align: center;
-
   font-size: 12px;
-}
-
-/* =========================================================
-   YEAR RANGE
-   ========================================================= */
-
-.year-filter {
-  position: relative;
-
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-
-  box-sizing: border-box;
-}
-
-.year-selection-control {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 8px;
-
-  padding: 5px 11px;
-
-  box-sizing: border-box;
-
-  white-space: nowrap;
-}
-
-.year-selection-control > span:first-child {
-  flex: 1;
-
-  min-width: 0;
-
-  overflow: hidden;
-
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.year-selection-control .selector-chevron {
-  flex-shrink: 0;
-}
-
-.year-dropdown {
-  position: absolute;
-  z-index: 99999;
-
-  top: calc(100% + 8px);
-  left: 0;
-
-  width: 200px !important;
-  max-width: 200px !important;
-
-  overflow: hidden;
-
-  box-sizing: border-box;
-
-  border: 1px solid #d9e0e8;
-  border-radius: 12px;
-
-  background: #ffffff;
-  opacity: 1;
-
-  box-shadow:
-    0 20px 50px rgba(15, 23, 42, 0.18),
-    0 6px 16px rgba(15, 23, 42, 0.07);
-}
-
-.year-dropdown-title {
-  padding: 12px 13px;
-
-  box-sizing: border-box;
-
-  border-bottom: 1px solid var(--border);
-
-  background: #ffffff;
-}
-
-.year-dropdown-title span {
-  display: block;
-
-  color: var(--text);
-
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.09em;
-}
-
-.year-dropdown-title small {
-  display: block;
-
-  margin-top: 4px;
-
-  color: var(--muted);
-
-  font-size: 10px;
-}
-
-.year-fields {
-  display: grid;
-
-  grid-template-columns:
-    minmax(0, 1fr)
-    18px
-    minmax(0, 1fr);
-
-  align-items: end;
-
-  gap: 8px;
-
-  margin: 0;
-  padding: 13px;
-
-  box-sizing: border-box;
-
-  background: #ffffff;
-}
-
-.year-input {
-  min-width: 0;
-}
-
-.year-input label {
-  display: block;
-
-  margin-bottom: 6px;
-
-  color: var(--muted);
-
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.year-input input {
-  width: 100%;
-  max-width: 100%;
-  height: 38px;
-
-  padding: 0 10px;
-
-  box-sizing: border-box;
-
-  border: 1px solid var(--border);
-  border-radius: 9px;
-
-  outline: none;
-
-  background: var(--background);
-  color: var(--text);
-
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.year-input input:hover {
-  border-color: #b7c0cb;
-}
-
-.year-input input:focus {
-  border-color: #64748b;
-
-  box-shadow:
-    0 0 0 3px rgba(100, 116, 139, 0.08);
-}
-
-.year-between {
-  padding-bottom: 10px;
-
-  color: var(--muted);
-
-  font-size: 12px;
-
-  text-align: center;
-}
-
-.year-apply {
-  width: calc(100% - 26px);
-  height: 36px;
-
-  margin: 0 13px 13px;
-
-  box-sizing: border-box;
-
-  border: 1px solid var(--border);
-  border-radius: 8px;
-
-  background: #ffffff;
-  color: var(--text);
-
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 650;
-
-  cursor: pointer;
-
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease;
-}
-
-.year-apply:hover {
-  background: var(--background);
 }
 
 /* =========================================================
    VALUE TYPE / YoY TOGGLE
    ========================================================= */
 
+.trend-value-type {
+  width: 100%;
+  min-width: 0;
+}
+
 .trend-value-toggle {
-  display: inline-flex;
+  width: 100%;
+  height: 42px;
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
   align-items: center;
-
+  gap: 3px;
   padding: 3px;
-
-  border: 1px solid var(--border);
-  border-radius: 9px;
-
-  background: var(--background);
-
   box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
 }
 
 .trend-value-button {
-  height: 29px;
-
-  padding: 0 10px;
-
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
   border: 0;
   border-radius: 7px;
-
   background: transparent;
   color: var(--muted);
-
   font-family: inherit;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 650;
-
   white-space: nowrap;
-
   cursor: pointer;
-
   transition:
     background 0.12s ease,
     color 0.12s ease,
@@ -704,9 +399,168 @@
 .trend-value-button.active {
   background: var(--surface);
   color: var(--text);
-
   box-shadow:
     0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* =========================================================
+   YEAR RANGE
+   ========================================================= */
+
+.year-filter {
+  position: relative;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+  box-sizing: border-box;
+}
+
+.year-selection-control {
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 11px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.year-selection-control > span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.year-selection-control .selector-chevron {
+  flex-shrink: 0;
+}
+
+.year-dropdown {
+  position: absolute;
+  z-index: 99999;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 200px;
+  max-width: 200px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #d9e0e8;
+  border-radius: 12px;
+  background: #ffffff;
+  opacity: 1;
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.18),
+    0 6px 16px rgba(15, 23, 42, 0.07);
+}
+
+.year-dropdown-title {
+  padding: 12px 13px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
+}
+
+.year-dropdown-title span {
+  display: block;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+}
+
+.year-dropdown-title small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.year-fields {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    18px
+    minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+  margin: 0;
+  padding: 13px;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.year-input {
+  min-width: 0;
+}
+
+.year-input label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.year-input input {
+  width: 100%;
+  max-width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: none;
+  background: var(--background);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.year-input input:hover {
+  border-color: #b7c0cb;
+}
+
+.year-input input:focus {
+  border-color: #64748b;
+  box-shadow:
+    0 0 0 3px rgba(100, 116, 139, 0.08);
+}
+
+.year-between {
+  padding-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.year-apply {
+  width: calc(100% - 26px);
+  height: 36px;
+  margin: 0 13px 13px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.year-apply:hover {
+  background: var(--background);
 }
 
 /* =========================================================
@@ -716,16 +570,11 @@
 .trend-card {
   position: relative;
   z-index: 1;
-
   width: 100%;
-
   overflow: hidden;
-
   box-sizing: border-box;
-
   border: 1px solid var(--border);
   border-radius: 20px;
-
   background: var(--surface);
 }
 
@@ -733,17 +582,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-
   gap: 25px;
-
   padding: 27px 30px 10px;
 }
 
 .trend-card-header h2 {
   margin: 4px 0 7px;
-
   color: var(--text);
-
   font-size: 23px;
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -751,22 +596,16 @@
 
 .trend-card-header p {
   margin: 0;
-
   color: var(--muted);
-
   font-size: 13px;
 }
 
 .trend-period {
   flex-shrink: 0;
-
   padding: 8px 11px;
-
   border-radius: 8px;
-
   background: var(--background);
   color: var(--muted);
-
   font-size: 12px;
   font-weight: 600;
 }
@@ -779,29 +618,21 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-
   gap: 9px;
-
   flex-wrap: wrap;
 }
 
 .chart-download-button {
   height: 32px;
-
   padding: 0 11px;
-
   border: 1px solid var(--border);
   border-radius: 8px;
-
   background: var(--surface);
   color: var(--text);
-
   font-family: inherit;
   font-size: 11px;
   font-weight: 650;
-
   cursor: pointer;
-
   transition:
     background 0.12s ease,
     border-color 0.12s ease,
@@ -824,13 +655,10 @@
 
 .chart-container {
   position: relative;
-
   width: 100%;
   height: 500px;
   min-height: 500px;
-
   padding: 10px 20px 0;
-
   box-sizing: border-box;
 }
 
@@ -842,29 +670,21 @@
   width: 100%;
   height: 100%;
   min-height: 150px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   gap: 9px;
-
   color: var(--muted);
-
   font-size: 13px;
 }
 
 .trend-loading-page {
   min-height: 400px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   gap: 9px;
-
   color: var(--muted);
-
   font-size: 13px;
 }
 
@@ -885,27 +705,21 @@
 .trend-error {
   display: flex;
   flex-direction: column;
-
   gap: 4px;
-
   padding: 15px 17px;
   margin-bottom: 20px;
-
   border: 1px solid #fecaca;
   border-radius: 12px;
-
   background: #fff7f7;
 }
 
 .trend-error strong {
   color: #991b1b;
-
   font-size: 13px;
 }
 
 .trend-error span {
   color: #b91c1c;
-
   font-size: 12px;
 }
 
@@ -915,29 +729,22 @@
 
 .empty-state {
   padding: 80px 30px;
-
   border: 1px dashed var(--border);
   border-radius: 18px;
-
   text-align: center;
 }
 
 .empty-state h2 {
   margin: 9px 0 8px;
-
   color: var(--text);
-
   font-size: 22px;
   letter-spacing: -0.03em;
 }
 
 .empty-state p {
   max-width: 500px;
-
   margin: 0 auto;
-
   color: var(--muted);
-
   font-size: 13px;
   line-height: 1.6;
 }
@@ -946,17 +753,24 @@
    RESPONSIVE
    ========================================================= */
 
-@media (max-width: 1050px) {
+@media (max-width: 1150px) {
   .trend-controls {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+      1fr
+      1fr;
   }
 
+  .trend-value-type,
   .year-filter {
-    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
 
-    width: 200px !important;
-    min-width: 200px !important;
-    max-width: 200px !important;
+  .year-selection-control {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
   }
 }
 
@@ -969,89 +783,37 @@
     grid-template-columns: 1fr;
   }
 
-  .year-filter {
-    grid-column: auto;
-
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-  }
-
-  .year-selection-control {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
+  .trend-value-toggle {
+    grid-template-columns: 1fr 1.2fr;
   }
 
   .trend-card-header {
     flex-direction: column;
-
     padding: 22px;
   }
 
   .trend-chart-actions {
     width: 100%;
-
     justify-content: flex-start;
   }
 
-  .trend-value-toggle {
-    max-width: 100%;
-  }
-
   .trend-value-button {
-    padding: 0 9px;
+    padding: 0 8px;
+    font-size: 10px;
   }
 
   .chart-container {
     height: 370px;
     min-height: 370px;
-
     padding: 10px 5px 0;
   }
 }
+
 /* =========================================================
-   VALUE TYPE
+   VALUE DISPLAY
    ========================================================= */
 
 .trend-value-type {
   width: 100%;
   min-width: 0;
-}
-
-.value-type-button {
-  width: 100%;
-  height: 42px;
-
-  padding: 0 12px;
-
-  box-sizing: border-box;
-
-  border: 1px solid var(--border);
-  border-radius: 10px;
-
-  background: var(--background);
-  color: var(--text);
-
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-.value-type-button:hover {
-  border-color: #b7c0cb;
-  background: var(--surface);
-}
-
-.value-type-button.active {
-  border-color: #64748b;
-  background: #f1f5f9;
-  color: var(--text);
 }
