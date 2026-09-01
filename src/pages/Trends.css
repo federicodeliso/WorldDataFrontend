@@ -10,6 +10,7 @@
   box-sizing: border-box;
 }
 
+
 /* =========================================================
    HEADER
    ========================================================= */
@@ -36,6 +37,7 @@
   line-height: 1.6;
 }
 
+
 /* =========================================================
    CONTROLS
    ========================================================= */
@@ -46,19 +48,11 @@
 
   display: grid;
 
-  /*
-    DESKTOP:
+  /* EXACTLY TWO COLUMNS */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 
-    Countries  | Indicators
-    Value      | Year
-  */
-  grid-template-columns:
-    minmax(0, 1fr)
-    minmax(0, 1fr);
-
-  grid-template-rows:
-    auto
-    auto;
+  /* EXACTLY TWO ROWS */
+  grid-template-rows: auto auto;
 
   gap: 16px;
 
@@ -79,51 +73,51 @@
   isolation: isolate;
 }
 
+
 /* =========================================================
    CONTROL ORDER
-   =========================================================
 
-   IMPORTANT:
-   Current JSX/DOM order is assumed to be:
+   DOM ORDER ASSUMED:
 
-   1. Countries
-   2. Value
-   3. Indicators
-   4. Year
+   1 = Countries
+   2 = Value
+   3 = Indicators
+   4 = Year
 
-   We deliberately rearrange them visually to:
+   VISUAL RESULT:
 
    Countries  | Indicators
    Value      | Year
-
    ========================================================= */
 
-/* 1 — Countries */
-.trend-controls > :nth-child(1) {
+/* COUNTRIES */
+.trend-controls > .control-block:nth-child(1) {
   grid-column: 1;
   grid-row: 1;
 }
 
-/* 2 — Value */
-.trend-controls > :nth-child(2) {
+/* VALUE */
+.trend-controls > .control-block:nth-child(2),
+.trend-controls > .trend-value-type:nth-child(2) {
   grid-column: 1;
   grid-row: 2;
 }
 
-/* 3 — Indicators */
-.trend-controls > :nth-child(3) {
+/* INDICATORS */
+.trend-controls > .control-block:nth-child(3) {
   grid-column: 2;
   grid-row: 1;
 }
 
-/* 4 — Year */
-.trend-controls > :nth-child(4) {
+/* YEAR */
+.trend-controls > .year-filter {
   grid-column: 2;
   grid-row: 2;
 }
+
 
 /* =========================================================
-   CONTROL BLOCK
+   GENERIC CONTROL BLOCK
    ========================================================= */
 
 .control-block {
@@ -136,6 +130,11 @@
   box-sizing: border-box;
 }
 
+
+/* =========================================================
+   CONTROL LABEL
+   ========================================================= */
+
 .control-label {
   display: flex;
   align-items: center;
@@ -147,10 +146,8 @@
 
 .control-label > span {
   color: var(--text);
-
   font-size: 10px;
   font-weight: 750;
-
   letter-spacing: 0.1em;
 }
 
@@ -158,8 +155,8 @@
   padding: 0;
 
   border: 0;
-
   background: transparent;
+
   color: var(--muted);
 
   font-family: inherit;
@@ -171,6 +168,7 @@
 .control-label button:hover {
   color: var(--text);
 }
+
 
 /* =========================================================
    MAIN SELECTOR BUTTON
@@ -238,16 +236,15 @@
 
 .selector-chevron {
   flex-shrink: 0;
-
   color: var(--muted);
 
-  transition:
-    transform 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .selector-chevron.open {
   transform: rotate(180deg);
 }
+
 
 /* =========================================================
    SELECTED TAGS
@@ -261,6 +258,7 @@
   gap: 5px;
 
   min-width: 0;
+
   overflow: hidden;
 }
 
@@ -271,7 +269,6 @@
   gap: 5px;
 
   flex-shrink: 0;
-
   max-width: 145px;
 
   padding: 5px 7px;
@@ -318,6 +315,7 @@
   font-size: 10px;
   font-weight: 700;
 }
+
 
 /* =========================================================
    COUNTRY / INDICATOR DROPDOWN
@@ -498,6 +496,7 @@
   font-size: 12px;
 }
 
+
 /* =========================================================
    VALUE TYPE / YoY TOGGLE
    ========================================================= */
@@ -517,9 +516,7 @@
 
   display: grid;
 
-  grid-template-columns:
-    1fr
-    1.35fr;
+  grid-template-columns: 1fr 1.35fr;
 
   align-items: center;
 
@@ -548,7 +545,6 @@
   color: var(--muted);
 
   font-family: inherit;
-
   font-size: 11px;
   font-weight: 650;
 
@@ -573,6 +569,7 @@
   box-shadow:
     0 1px 3px rgba(15, 23, 42, 0.08);
 }
+
 
 /* =========================================================
    YEAR RANGE
@@ -735,7 +732,6 @@
   color: var(--text);
 
   font-family: inherit;
-
   font-size: 12px;
   font-weight: 600;
 }
@@ -757,13 +753,11 @@
   color: var(--muted);
 
   font-size: 12px;
-
   text-align: center;
 }
 
 .year-apply {
   width: calc(100% - 26px);
-
   height: 36px;
 
   margin: 0 13px 13px;
@@ -777,7 +771,6 @@
   color: var(--text);
 
   font-family: inherit;
-
   font-size: 11px;
   font-weight: 650;
 
@@ -791,6 +784,7 @@
 .year-apply:hover {
   background: var(--background);
 }
+
 
 /* =========================================================
    CHART CARD
@@ -855,6 +849,7 @@
   font-weight: 600;
 }
 
+
 /* =========================================================
    CHART ACTIONS
    ========================================================= */
@@ -881,7 +876,6 @@
   color: var(--text);
 
   font-family: inherit;
-
   font-size: 11px;
   font-weight: 650;
 
@@ -903,6 +897,7 @@
   cursor: default;
 }
 
+
 /* =========================================================
    CHART
    ========================================================= */
@@ -919,6 +914,7 @@
 
   box-sizing: border-box;
 }
+
 
 /* =========================================================
    LOADING
@@ -965,6 +961,7 @@
   }
 }
 
+
 /* =========================================================
    ERROR
    ========================================================= */
@@ -993,6 +990,7 @@
   color: #b91c1c;
   font-size: 12px;
 }
+
 
 /* =========================================================
    EMPTY STATE
@@ -1025,61 +1023,73 @@
   color: var(--muted);
 
   font-size: 13px;
+
   line-height: 1.6;
 }
+
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
+@media (max-width: 1150px) {
+
+  .trend-controls {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .trend-value-type,
+  .year-filter {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .year-selection-control {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+
 @media (max-width: 700px) {
+
   .trends-heading h1 {
     font-size: 32px;
   }
 
   .trend-controls {
     grid-template-columns: 1fr;
-
-    grid-template-rows:
-      auto
-      auto
-      auto
-      auto;
+    grid-template-rows: auto;
   }
 
-  /*
-    Mobile:
+  /* MOBILE = ONE COLUMN */
 
-    Countries
-    Value
-    Indicators
-    Year
-  */
-
-  .trend-controls > :nth-child(1) {
+  .trend-controls > .control-block:nth-child(1) {
     grid-column: 1;
     grid-row: 1;
   }
 
-  .trend-controls > :nth-child(2) {
+  .trend-controls > .control-block:nth-child(2),
+  .trend-controls > .trend-value-type:nth-child(2) {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .trend-controls > :nth-child(3) {
+  .trend-controls > .control-block:nth-child(3) {
     grid-column: 1;
     grid-row: 3;
   }
 
-  .trend-controls > :nth-child(4) {
+  .trend-controls > .year-filter {
     grid-column: 1;
     grid-row: 4;
   }
 
   .trend-value-toggle {
-    grid-template-columns:
-      1fr
-      1.2fr;
+    grid-template-columns: 1fr 1.2fr;
   }
 
   .trend-card-header {
@@ -1107,4 +1117,3 @@
     padding: 10px 5px 0;
   }
 }
-
