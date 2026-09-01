@@ -820,172 +820,184 @@ function Trends() {
         className="trend-controls"
         ref={controlsRef}
       >
-        <MultiSelector
-          title="COUNTRIES"
-          placeholder="Select countries"
-          selected={selectedCountries}
-          options={filteredCountries}
-          search={countrySearch}
-          setSearch={setCountrySearch}
-          open={countriesOpen}
-          setOpen={(open) => {
-            setCountriesOpen(open);
-            setIndicatorsOpen(false);
-            setYearOpen(false);
-          }}
-          onChange={setSelectedCountries}
-        />
+        {/* =================================================
+            FIRST ROW — COUNTRIES / INDICATORS / YEAR
+            ================================================= */}
 
-        <MultiSelector
-          title="INDICATORS"
-          placeholder="Select indicators"
-          selected={selectedIndicators}
-          options={filteredIndicators}
-          search={indicatorSearch}
-          setSearch={setIndicatorSearch}
-          open={indicatorsOpen}
-          setOpen={(open) => {
-            setIndicatorsOpen(open);
-            setCountriesOpen(false);
-            setYearOpen(false);
-          }}
-          onChange={setSelectedIndicators}
-          formatOption={getIndicatorName}
-        />
+        <div className="trend-controls-row trend-controls-row-top">
+          <MultiSelector
+            title="COUNTRIES"
+            placeholder="Select countries"
+            selected={selectedCountries}
+            options={filteredCountries}
+            search={countrySearch}
+            setSearch={setCountrySearch}
+            open={countriesOpen}
+            setOpen={(open) => {
+              setCountriesOpen(open);
+              setIndicatorsOpen(false);
+              setYearOpen(false);
+            }}
+            onChange={setSelectedCountries}
+          />
 
-        <div className="trend-value-type">
-          <div className="control-label">
-            <span>VALUE</span>
-          </div>
+          <MultiSelector
+            title="INDICATORS"
+            placeholder="Select indicators"
+            selected={selectedIndicators}
+            options={filteredIndicators}
+            search={indicatorSearch}
+            setSearch={setIndicatorSearch}
+            open={indicatorsOpen}
+            setOpen={(open) => {
+              setIndicatorsOpen(open);
+              setCountriesOpen(false);
+              setYearOpen(false);
+            }}
+            onChange={setSelectedIndicators}
+            formatOption={getIndicatorName}
+          />
 
-          <div className="trend-value-toggle">
-            <button
-              type="button"
-              className={
-                valueMode === "level"
-                  ? "trend-value-button active"
-                  : "trend-value-button"
-              }
-              onClick={() =>
-                setValueMode("level")
-              }
-            >
-              Level
-            </button>
+          <div className="control-block year-filter">
+            <div className="control-label">
+              <span>YEAR RANGE</span>
+            </div>
 
             <button
               type="button"
-              className={
-                valueMode === "yoy"
-                  ? "trend-value-button active"
-                  : "trend-value-button"
-              }
-              onClick={() =>
-                setValueMode("yoy")
-              }
+              className="selection-control year-selection-control"
+              onClick={() => {
+                setYearOpen(
+                  (open) => !open
+                );
+
+                setCountriesOpen(false);
+                setIndicatorsOpen(false);
+              }}
             >
-              YoY % Change
+              <span>
+                {startYear} — {endYear}
+              </span>
+
+              <ChevronDown
+                size={15}
+                className={
+                  yearOpen
+                    ? "selector-chevron open"
+                    : "selector-chevron"
+                }
+              />
             </button>
+
+            {yearOpen && (
+              <div className="year-dropdown">
+                <div className="year-dropdown-title">
+                  <span>
+                    YEAR RANGE
+                  </span>
+
+                  <small>
+                    Select the period to
+                    display
+                  </small>
+                </div>
+
+                <div className="year-fields">
+                  <div className="year-input">
+                    <label>FROM</label>
+
+                    <input
+                      type="number"
+                      value={startYear}
+                      min={minYear}
+                      max={endYear}
+                      onChange={(event) =>
+                        setStartYear(
+                          Number(
+                            event.target.value
+                          )
+                        )
+                      }
+                    />
+                  </div>
+
+                  <span className="year-between">
+                    —
+                  </span>
+
+                  <div className="year-input">
+                    <label>TO</label>
+
+                    <input
+                      type="number"
+                      value={endYear}
+                      min={startYear}
+                      max={maxYear}
+                      onChange={(event) =>
+                        setEndYear(
+                          Number(
+                            event.target.value
+                          )
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="year-apply"
+                  onClick={() =>
+                    setYearOpen(false)
+                  }
+                >
+                  Apply range
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="control-block year-filter">
-          <div className="control-label">
-            <span>YEAR RANGE</span>
-          </div>
+        {/* =================================================
+            SECOND ROW — VALUE
+            ================================================= */}
 
-          <button
-            type="button"
-            className="selection-control year-selection-control"
-            onClick={() => {
-              setYearOpen(
-                (open) => !open
-              );
+        <div className="trend-controls-row trend-controls-row-value">
+          <div className="trend-value-type">
+            <div className="control-label">
+              <span>VALUE</span>
+            </div>
 
-              setCountriesOpen(false);
-              setIndicatorsOpen(false);
-            }}
-          >
-            <span>
-              {startYear} — {endYear}
-            </span>
-
-            <ChevronDown
-              size={15}
-              className={
-                yearOpen
-                  ? "selector-chevron open"
-                  : "selector-chevron"
-              }
-            />
-          </button>
-
-          {yearOpen && (
-            <div className="year-dropdown">
-              <div className="year-dropdown-title">
-                <span>
-                  YEAR RANGE
-                </span>
-
-                <small>
-                  Select the period to
-                  display
-                </small>
-              </div>
-
-              <div className="year-fields">
-                <div className="year-input">
-                  <label>FROM</label>
-
-                  <input
-                    type="number"
-                    value={startYear}
-                    min={minYear}
-                    max={endYear}
-                    onChange={(event) =>
-                      setStartYear(
-                        Number(
-                          event.target.value
-                        )
-                      )
-                    }
-                  />
-                </div>
-
-                <span className="year-between">
-                  —
-                </span>
-
-                <div className="year-input">
-                  <label>TO</label>
-
-                  <input
-                    type="number"
-                    value={endYear}
-                    min={startYear}
-                    max={maxYear}
-                    onChange={(event) =>
-                      setEndYear(
-                        Number(
-                          event.target.value
-                        )
-                      )
-                    }
-                  />
-                </div>
-              </div>
+            <div className="trend-value-toggle">
+              <button
+                type="button"
+                className={
+                  valueMode === "level"
+                    ? "trend-value-button active"
+                    : "trend-value-button"
+                }
+                onClick={() =>
+                  setValueMode("level")
+                }
+              >
+                Level
+              </button>
 
               <button
                 type="button"
-                className="year-apply"
+                className={
+                  valueMode === "yoy"
+                    ? "trend-value-button active"
+                    : "trend-value-button"
+                }
                 onClick={() =>
-                  setYearOpen(false)
+                  setValueMode("yoy")
                 }
               >
-                Apply range
+                YoY % Change
               </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
