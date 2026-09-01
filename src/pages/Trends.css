@@ -1010,3 +1010,48 @@
     padding: 10px 5px 0;
   }
 }
+/* =========================================================
+   VALUE TYPE
+   ========================================================= */
+
+.trend-value-type {
+  width: 100%;
+  min-width: 0;
+}
+
+.value-type-button {
+  width: 100%;
+  height: 42px;
+
+  padding: 0 12px;
+
+  box-sizing: border-box;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: var(--background);
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.value-type-button:hover {
+  border-color: #b7c0cb;
+  background: var(--surface);
+}
+
+.value-type-button.active {
+  border-color: #64748b;
+  background: #f1f5f9;
+  color: var(--text);
+}

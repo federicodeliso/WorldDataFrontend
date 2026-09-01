@@ -883,69 +883,34 @@ function Trends() {
           formatOption={getIndicatorName}
         />
 
-        <div className="control-block">
+        <div className="control-block year-filter">
+        
+        </div>
+
+        <div className="trend-value-type">
           <div className="control-label">
             <span>VALUE</span>
           </div>
 
-          <div
-            className="selection-control"
-            style={{
-              display: "flex",
-              padding: 0,
-              overflow: "hidden",
-            }}
+          <button
+            type="button"
+            className={
+              valueMode === "yoy"
+                ? "value-type-button active"
+                : "value-type-button"
+            }
+            onClick={() =>
+              setValueMode((current) =>
+                current === "level"
+                  ? "yoy"
+                  : "level"
+              )
+            }
           >
-            <button
-              type="button"
-              onClick={() =>
-                setValueMode("level")
-              }
-              style={{
-                flex: 1,
-                border: "none",
-                background:
-                  valueMode === "level"
-                    ? "#0f172a"
-                    : "transparent",
-                color:
-                  valueMode === "level"
-                    ? "#ffffff"
-                    : "#64748b",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                padding: "9px 12px",
-              }}
-            >
-              Level
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setValueMode("yoy")
-              }
-              style={{
-                flex: 1,
-                border: "none",
-                background:
-                  valueMode === "yoy"
-                    ? "#0f172a"
-                    : "transparent",
-                color:
-                  valueMode === "yoy"
-                    ? "#ffffff"
-                    : "#64748b",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                padding: "9px 12px",
-              }}
-            >
-              YoY % Change
-            </button>
-          </div>
+            {valueMode === "yoy"
+              ? "YoY % Change"
+              : "Level"}
+          </button>
         </div>
 
         <div className="control-block year-filter">
