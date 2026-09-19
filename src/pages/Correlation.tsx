@@ -124,10 +124,6 @@ function countryName(country: Country): string {
   return country.name ?? country.country_name ?? "";
 }
 
-function normalCDF(x: number) {
-  return 0.5 * (1 + erf(x / Math.sqrt(2)));
-}
-
 function erf(x: number) {
   const sign = x >= 0 ? 1 : -1;
   const absX = Math.abs(x);
