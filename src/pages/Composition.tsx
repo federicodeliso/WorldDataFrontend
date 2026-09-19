@@ -206,7 +206,7 @@ function Composition() {
         const [countriesResponse, indicatorsResponse] =
           await Promise.all([
             fetch(`${API}/countries?limit=500`),
-            fetch(`${API}/indicators?limit=500`),
+            fetch(`${API}/indicators?limit=2000`),
           ]);
 
         if (!countriesResponse.ok) {

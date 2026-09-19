@@ -289,7 +289,7 @@ function Ranking() {
             `${API}/countries?limit=500`
           ),
           fetchWithRetry(
-            `${API}/indicators?limit=500`
+            `${API}/indicators?limit=2000`
           ),
         ]);
 

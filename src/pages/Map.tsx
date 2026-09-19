@@ -358,7 +358,7 @@ function Map() {
             `${API}/countries?limit=500`
           ),
           fetch(
-            `${API}/indicators?limit=500`
+            `${API}/indicators?limit=2000`
           ),
         ]);
 
