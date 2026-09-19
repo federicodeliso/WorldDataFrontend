@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  Calculator,
   Database,
   Globe2,
   Layers3,
@@ -17,6 +18,7 @@ import Ranking from "./pages/Ranking";
 import Correlation from "./pages/Correlation";
 import Composition from "./pages/Composition";
 import Map from "./pages/Map";
+import SalaryTax from "./pages/SalaryTax";
 
 import "./App.css";
 
@@ -410,6 +412,10 @@ function App() {
           </button>
         </div>
 
+        {/* =========================
+            EXPLORE
+        ========================= */}
+
         <div className="nav-section">
           <div className="nav-label">
             Explore
@@ -440,6 +446,40 @@ function App() {
             );
           })}
         </div>
+
+        {/* =========================
+            TOOLS
+        ========================= */}
+
+        <div className="nav-section">
+          <div className="nav-label">
+            Tools
+          </div>
+
+          <button
+            className={`nav-item ${
+              activePage === "Salary & Tax"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              navigate("Salary & Tax")
+            }
+          >
+            <Calculator
+              size={18}
+              strokeWidth={1.8}
+            />
+
+            <span>
+              Salary &amp; Tax
+            </span>
+          </button>
+        </div>
+
+        {/* =========================
+            DATABASE
+        ========================= */}
 
         <div className="nav-section">
           <div className="nav-label">
@@ -554,6 +594,10 @@ function App() {
               </button>
             </div>
           )}
+
+          {/* =========================
+              OVERVIEW
+          ========================= */}
 
           {!loading &&
             !error &&
@@ -761,11 +805,19 @@ function App() {
               </>
             )}
 
+          {/* =========================
+              TRENDS
+          ========================= */}
+
           {!loading &&
             !error &&
             activePage === "Trends" && (
               <Trends />
             )}
+
+          {/* =========================
+              RANKINGS
+          ========================= */}
 
           {!loading &&
             !error &&
@@ -773,11 +825,19 @@ function App() {
               <Ranking />
             )}
 
+          {/* =========================
+              CORRELATION
+          ========================= */}
+
           {!loading &&
             !error &&
             activePage === "Correlation" && (
               <Correlation />
             )}
+
+          {/* =========================
+              COMPOSITION
+          ========================= */}
 
           {!loading &&
             !error &&
@@ -785,10 +845,24 @@ function App() {
               <Composition />
             )}
 
+          {/* =========================
+              WORLD MAP
+          ========================= */}
+
           {!loading &&
             !error &&
             activePage === "World Map" && (
               <Map />
+            )}
+
+          {/* =========================
+              SALARY & TAX
+          ========================= */}
+
+          {!loading &&
+            !error &&
+            activePage === "Salary & Tax" && (
+              <SalaryTax />
             )}
         </div>
       </main>
@@ -882,3 +956,4 @@ function formatLargeNumber(value: number) {
 }
 
 export default App;
+
