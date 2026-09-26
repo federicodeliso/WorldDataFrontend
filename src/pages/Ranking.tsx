@@ -1533,9 +1533,11 @@ function Ranking() {
             </div>
 
             <h2>
-              {selectedIndicators.join(
-                " + "
-              )}
+              {selectedIndicators.length <= 3
+                ? selectedIndicators.join(" + ")
+                : `${selectedIndicators.slice(0, 3).join(" + ")} + ${
+                    selectedIndicators.length - 3
+                  } more`}
             </h2>
 
             <p>

@@ -1,10 +1,17 @@
 .ranking-page {
+
   width: 100%;
+
   max-width: 1500px;
+
   margin: 0 auto;
+
   padding: 28px 32px 48px;
+
   box-sizing: border-box;
+
   color: #0f172a;
+
 }
 
 /* =========================================================
@@ -12,33 +19,55 @@
    ========================================================= */
 
 .ranking-heading {
+
   display: flex;
+
   align-items: flex-start;
+
   justify-content: space-between;
+
   gap: 24px;
-  margin-bottom: 24px;
+
+  margin-bottom: 16px;
+
 }
 
 .ranking-heading h1 {
+
   margin: 4px 0 8px;
+
   font-size: clamp(30px, 3vw, 42px);
+
   line-height: 1;
+
   letter-spacing: -0.04em;
+
 }
 
 .ranking-heading p {
+
   margin: 0;
+
   max-width: 620px;
+
   color: #64748b;
+
   font-size: 14px;
+
   line-height: 1.6;
+
 }
 
 .eyebrow {
+
   color: #64748b;
+
   font-size: 10px;
+
   font-weight: 800;
+
   letter-spacing: 0.13em;
+
 }
 
 /* =========================================================
@@ -46,36 +75,61 @@
    ========================================================= */
 
 .italy-rank-card {
+
   min-width: 150px;
+
   padding: 14px 18px;
+
   border: 1px solid #e2e8f0;
+
   border-radius: 14px;
+
   background: #ffffff;
+
   box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+
   text-align: right;
+
 }
 
 .italy-rank-card span {
+
   display: block;
+
   margin-bottom: 3px;
+
   color: #64748b;
+
   font-size: 9px;
+
   font-weight: 800;
+
   letter-spacing: 0.12em;
+
 }
 
 .italy-rank-card strong {
+
   display: block;
+
   font-size: 26px;
+
   line-height: 1.1;
+
   letter-spacing: -0.03em;
+
 }
 
 .italy-rank-card small {
+
   display: block;
+
   margin-top: 3px;
+
   color: #94a3b8;
+
   font-size: 10px;
+
 }
 
 /* =========================================================
@@ -83,38 +137,63 @@
    ========================================================= */
 
 .ranking-initial-loading {
+
   min-height: 360px;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   gap: 12px;
+
   color: #64748b;
+
 }
 
 .ranking-initial-loading > div:last-child {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 3px;
+
 }
 
 .ranking-initial-loading strong {
+
   color: #0f172a;
+
   font-size: 14px;
+
 }
 
 .ranking-initial-loading span {
+
   font-size: 12px;
+
 }
 
 .ranking-loading-spinner {
+
   width: 38px;
+
   height: 38px;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   border: 1px solid #e2e8f0;
+
   border-radius: 50%;
+
   background: #ffffff;
+
 }
 
 /* =========================================================
@@ -122,20 +201,33 @@
    ========================================================= */
 
 .ranking-error {
+
   display: flex;
+
   align-items: center;
+
   gap: 10px;
+
   margin-bottom: 18px;
+
   padding: 10px 13px;
+
   border: 1px solid #fde68a;
+
   border-radius: 10px;
+
   background: #fffbeb;
+
   color: #92400e;
+
   font-size: 12px;
+
 }
 
 .ranking-error strong {
+
   font-weight: 800;
+
 }
 
 /* =========================================================
@@ -143,62 +235,101 @@
    ========================================================= */
 
 .ranking-controls {
+
   display: flex;
+
   align-items: flex-end;
+
   gap: 14px;
-  margin-bottom: 20px;
+
+  margin-bottom: 14px;
+
   flex-wrap: wrap;
+
 }
 
 .ranking-control {
+
   position: relative;
+
 }
 
 .ranking-control-label {
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
   gap: 8px;
+
   min-height: 18px;
+
   margin-bottom: 6px;
+
 }
 
 .ranking-control-label span {
+
   color: #64748b;
+
   font-size: 9px;
+
   font-weight: 800;
+
   letter-spacing: 0.12em;
+
 }
 
 .ranking-control-label button {
+
   border: 0;
+
   padding: 0;
+
   background: transparent;
+
   color: #2563eb;
+
   font-size: 10px;
+
   cursor: pointer;
+
 }
 
 .ranking-indicator-control {
+
   min-width: 260px;
+
   flex: 1 1 300px;
+
   max-width: 420px;
+
 }
 
 .ranking-year-control {
+
   width: 130px;
+
 }
 
 .ranking-order-control {
+
   min-width: 205px;
+
 }
 
 .ranking-show-control {
+
   width: 115px;
+
 }
 
 .ranking-group-control {
+
   width: 95px;
+
 }
 
 /* =========================================================
@@ -206,99 +337,169 @@
    ========================================================= */
 
 .ranking-selection-control {
+
   width: 100%;
+
   min-height: 38px;
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
   gap: 8px;
+
   padding: 7px 10px;
+
   border: 1px solid #dbe3ec;
+
   border-radius: 9px;
+
   background: #ffffff;
+
   color: #0f172a;
+
   cursor: pointer;
+
   text-align: left;
+
   transition:
+
     border-color 0.15s ease,
+
     box-shadow 0.15s ease;
+
 }
 
 .ranking-selection-control:hover {
+
   border-color: #cbd5e1;
+
 }
 
 .ranking-selection-control:focus-visible {
+
   outline: none;
+
   border-color: #2563eb;
+
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+
 }
 
 .ranking-selection-content {
+
   min-width: 0;
+
   flex: 1;
+
 }
 
 .ranking-placeholder {
+
   color: #94a3b8;
+
 }
 
 .ranking-selected-tags {
+
   display: flex;
+
   align-items: center;
+
   gap: 5px;
+
   min-width: 0;
+
   overflow: hidden;
+
 }
 
 .ranking-selection-tag {
+
   flex: 0 0 auto;
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 5px;
+
   max-width: 120px;
+
   padding: 4px 6px;
+
   border: 1px solid #e2e8f0;
+
   border-radius: 6px;
+
   background: #f8fafc;
+
   font-size: 10px;
+
   font-weight: 700;
+
 }
 
 .ranking-tag-dot {
+
   width: 6px;
+
   height: 6px;
+
   flex: 0 0 6px;
+
   border-radius: 50%;
+
 }
 
 .ranking-tag-remove {
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   color: #94a3b8;
+
   cursor: pointer;
+
 }
 
 .ranking-tag-remove:hover {
+
   color: #0f172a;
+
 }
 
 .ranking-selection-more {
+
   flex: 0 0 auto;
+
   color: #64748b;
+
   font-size: 10px;
+
   font-weight: 700;
+
 }
 
 .ranking-chevron {
+
   flex: 0 0 auto;
+
   color: #64748b;
+
   transition: transform 0.15s ease;
+
 }
 
 .ranking-chevron.open {
+
   transform: rotate(180deg);
+
 }
 
 /* =========================================================
@@ -306,117 +507,203 @@
    ========================================================= */
 
 .ranking-selector-panel,
+
 .ranking-year-panel {
+
   position: absolute;
+
   z-index: 50;
+
   top: calc(100% + 7px);
+
   left: 0;
+
   width: 100%;
+
   border: 1px solid #e2e8f0;
+
   border-radius: 12px;
+
   background: #ffffff;
+
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.13);
+
   overflow: hidden;
+
 }
 
 .ranking-selector-panel {
+
   min-width: 300px;
+
 }
 
 .ranking-selector-search {
+
   display: flex;
+
   align-items: center;
+
   gap: 8px;
+
   padding: 9px 11px;
+
   border-bottom: 1px solid #eef2f7;
+
   color: #94a3b8;
+
 }
 
 .ranking-selector-search input {
+
   width: 100%;
+
   border: 0;
+
   outline: none;
+
   background: transparent;
+
   color: #0f172a;
+
   font-size: 12px;
+
 }
 
 .ranking-search-clear {
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   border: 0;
+
   background: transparent;
+
   color: #94a3b8;
+
   cursor: pointer;
+
 }
 
 .ranking-selector-list {
+
   max-height: 330px;
+
   overflow-y: auto;
+
   padding: 5px;
+
 }
 
 .ranking-selector-option {
+
   width: 100%;
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
   gap: 10px;
+
   padding: 9px 10px;
+
   border: 0;
+
   border-radius: 8px;
+
   background: transparent;
+
   color: #0f172a;
+
   cursor: pointer;
+
   text-align: left;
+
 }
 
 .ranking-selector-option:hover,
+
 .ranking-selector-option.selected {
+
   background: #f8fafc;
+
 }
 
 .ranking-selector-option > div {
+
   min-width: 0;
+
   display: flex;
+
   flex-direction: column;
+
   gap: 2px;
+
 }
 
 .ranking-selector-option strong {
+
   font-size: 11px;
+
 }
 
 .ranking-selector-option small {
+
   color: #94a3b8;
+
   font-size: 10px;
+
   white-space: nowrap;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
 }
 
 .ranking-selector-check,
+
 .ranking-selector-circle {
+
   width: 17px;
+
   height: 17px;
+
   flex: 0 0 17px;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   border-radius: 50%;
+
   color: #ffffff;
+
 }
 
 .ranking-selector-circle {
+
   border: 1px solid #cbd5e1;
+
 }
 
 .ranking-selector-empty {
+
   padding: 20px;
+
   color: #94a3b8;
+
   font-size: 12px;
+
   text-align: center;
+
 }
 
 /* =========================================================
@@ -424,55 +711,91 @@
    ========================================================= */
 
 .ranking-year-panel {
+
   width: 270px;
+
   padding: 12px;
+
 }
 
 .ranking-year-panel-title {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 2px;
+
   margin-bottom: 10px;
+
 }
 
 .ranking-year-panel-title span {
+
   font-size: 9px;
+
   font-weight: 800;
+
   letter-spacing: 0.12em;
+
   color: #64748b;
+
 }
 
 .ranking-year-panel-title small {
+
   color: #94a3b8;
+
   font-size: 10px;
+
 }
 
 .ranking-year-grid {
+
   display: grid;
+
   grid-template-columns: repeat(5, 1fr);
+
   gap: 4px;
+
   max-height: 260px;
+
   overflow-y: auto;
+
 }
 
 .ranking-year-grid button {
+
   min-height: 30px;
+
   border: 0;
+
   border-radius: 6px;
+
   background: #f8fafc;
+
   color: #334155;
+
   font-size: 10px;
+
   cursor: pointer;
+
 }
 
 .ranking-year-grid button:hover {
+
   background: #eef2f7;
+
 }
 
 .ranking-year-grid button.selected {
+
   background: #0f172a;
+
   color: #ffffff;
+
   font-weight: 700;
+
 }
 
 /* =========================================================
@@ -480,33 +803,57 @@
    ========================================================= */
 
 .ranking-toggle {
+
   display: grid;
+
   grid-template-columns: 1fr 1fr;
+
   min-height: 38px;
+
   padding: 3px;
+
   border: 1px solid #dbe3ec;
+
   border-radius: 9px;
+
   background: #f8fafc;
+
 }
 
 .ranking-toggle button {
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   gap: 5px;
+
   border: 0;
+
   border-radius: 6px;
+
   background: transparent;
+
   color: #64748b;
+
   font-size: 10px;
+
   font-weight: 700;
+
   cursor: pointer;
+
 }
 
 .ranking-toggle button.active {
+
   background: #ffffff;
+
   color: #0f172a;
+
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+
 }
 
 /* =========================================================
@@ -514,15 +861,25 @@
    ========================================================= */
 
 .ranking-show-control select {
+
   width: 100%;
+
   min-height: 38px;
+
   padding: 0 9px;
+
   border: 1px solid #dbe3ec;
+
   border-radius: 9px;
+
   background: #ffffff;
+
   color: #0f172a;
+
   font-size: 11px;
+
   outline: none;
+
 }
 
 /* =========================================================
@@ -530,36 +887,61 @@
    ========================================================= */
 
 .ranking-oecd {
+
   width: 100%;
+
   min-height: 38px;
+
   display: flex;
+
   align-items: center;
+
   justify-content: center;
+
   gap: 7px;
+
   border: 1px solid #dbe3ec;
+
   border-radius: 9px;
+
   background: #ffffff;
+
   color: #64748b;
+
   font-size: 10px;
+
   font-weight: 700;
+
   cursor: pointer;
+
 }
 
 .ranking-oecd.active {
+
   border-color: #0f172a;
+
   background: #0f172a;
+
   color: #ffffff;
+
 }
 
 .ranking-oecd-indicator {
+
   width: 7px;
+
   height: 7px;
+
   border-radius: 50%;
+
   background: #cbd5e1;
+
 }
 
 .ranking-oecd-indicator.active {
+
   background: #ffffff;
+
 }
 
 /* =========================================================
@@ -567,79 +949,149 @@
    ========================================================= */
 
 .ranking-card {
+
   border: 1px solid #e2e8f0;
+
   border-radius: 16px;
+
   background: #ffffff;
+
   box-shadow: 0 8px 35px rgba(15, 23, 42, 0.05);
+
   overflow: hidden;
+
 }
 
 .ranking-card-header {
+
   display: flex;
+
   align-items: flex-start;
+
   justify-content: space-between;
+
   gap: 20px;
-  padding: 20px 22px 15px;
+
+  padding: 16px 22px 11px;
+
 }
 
 .ranking-card-header h2 {
+
   margin: 4px 0 4px;
+
   font-size: 20px;
-  line-height: 1.1;
+
+  line-height: 1.15;
+
   letter-spacing: -0.025em;
+
+  max-width: 900px;
+
+  max-height: 46px;
+
+  overflow: hidden;
+
+  display: -webkit-box;
+
+  -webkit-box-orient: vertical;
+
+  -webkit-line-clamp: 2;
+
+  overflow-wrap: anywhere;
+
 }
 
 .ranking-card-header p {
+
   margin: 0;
+
   color: #94a3b8;
+
   font-size: 11px;
+
 }
 
 .ranking-card-actions {
+
   display: flex;
+
   align-items: center;
+
   gap: 10px;
+
   flex-wrap: wrap;
+
   justify-content: flex-end;
+
 }
 
 .ranking-count {
+
   color: #64748b;
+
   font-size: 10px;
+
   font-weight: 700;
+
 }
 
 .ranking-updating {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 5px;
+
   color: #2563eb;
+
   font-size: 10px;
+
   font-weight: 700;
+
 }
 
 .ranking-download {
+
   display: inline-flex;
+
   align-items: center;
+
   gap: 6px;
+
   min-height: 32px;
+
   padding: 0 10px;
+
   border: 1px solid #dbe3ec;
+
   border-radius: 8px;
+
   background: #ffffff;
+
   color: #334155;
+
   font-size: 10px;
+
   font-weight: 700;
+
   cursor: pointer;
+
 }
 
 .ranking-download:hover:not(:disabled) {
+
   background: #f8fafc;
+
 }
 
 .ranking-download:disabled {
+
   opacity: 0.45;
+
   cursor: not-allowed;
+
 }
 
 /* =========================================================
@@ -647,7 +1099,9 @@
    ========================================================= */
 
 /*
+
    IMPORTANT:
+
    The old chart used:
 
    height = max(500px, countries * 32px)
@@ -655,70 +1109,121 @@
    which makes the page very tall.
 
    This version uses a fixed responsive height based
+
    primarily on the viewport, so it fits a laptop much better.
+
 */
 
 .ranking-chart {
+
   position: relative;
+
   width: 100%;
+
   height: clamp(
-    460px,
-    calc(100vh - 300px),
-    680px
+
+    500px,
+
+    calc(100vh - 240px),
+
+    760px
+
   );
-  min-height: 460px;
+
+  min-height: 500px;
+
   padding: 8px 22px 12px;
+
   box-sizing: border-box;
+
   transition: opacity 0.15s ease;
+
 }
 
 .ranking-chart.loading {
+
   opacity: 0.72;
+
 }
 
 .ranking-chart-inner {
+
   position: relative;
+
   width: 100%;
+
   height: 100%;
+
 }
 
 .ranking-chart-loading {
+
   position: absolute;
+
   z-index: 5;
+
   top: 12px;
+
   right: 18px;
+
   display: flex;
+
   align-items: center;
+
   gap: 6px;
+
   padding: 6px 9px;
+
   border: 1px solid #dbeafe;
+
   border-radius: 7px;
+
   background: rgba(255, 255, 255, 0.94);
+
   color: #2563eb;
+
   font-size: 10px;
+
   font-weight: 700;
+
   box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+
   pointer-events: none;
+
 }
 
 .ranking-empty {
+
   height: 100%;
+
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
+
   justify-content: center;
+
   text-align: center;
+
 }
 
 .ranking-empty h3 {
+
   margin: 0 0 5px;
+
   font-size: 14px;
+
 }
 
 .ranking-empty p {
+
   margin: 0;
+
   color: #94a3b8;
+
   font-size: 11px;
+
 }
 
 /* =========================================================
@@ -726,64 +1231,105 @@
    ========================================================= */
 
 .ranking-table {
+
   border-top: 1px solid #eef2f7;
+
   overflow-x: auto;
+
 }
 
 .ranking-table-head,
+
 .ranking-row {
+
   min-width: 620px;
+
   display: grid;
+
   align-items: center;
+
 }
 
 .ranking-table-head {
+
   min-height: 36px;
+
   padding: 0 22px;
+
   background: #f8fafc;
+
   color: #94a3b8;
+
   font-size: 9px;
+
   font-weight: 800;
+
   letter-spacing: 0.08em;
+
   text-transform: uppercase;
+
 }
 
 .ranking-row {
+
   min-height: 43px;
+
   padding: 0 22px;
+
   border-top: 1px solid #f1f5f9;
+
   color: #475569;
+
   font-size: 11px;
+
 }
 
 .ranking-row:hover {
+
   background: #fafcff;
+
 }
 
 .ranking-row > strong {
+
   color: #94a3b8;
+
 }
 
 .ranking-row > span {
+
   min-width: 0;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
+
 }
 
 .ranking-row.italy {
+
   background: #f8fbff;
+
 }
 
 .ranking-row.italy > strong,
+
 .ranking-row.italy > span:nth-child(2) {
+
   color: #2563eb;
+
   font-weight: 800;
+
 }
 
 .ranking-total {
+
   color: #0f172a;
+
   font-weight: 800;
+
 }
 
 /* =========================================================
@@ -791,17 +1337,25 @@
    ========================================================= */
 
 .spin {
+
   animation: ranking-spin 0.85s linear infinite;
+
 }
 
 @keyframes ranking-spin {
+
   from {
+
     transform: rotate(0deg);
+
   }
 
   to {
+
     transform: rotate(360deg);
+
   }
+
 }
 
 /* =========================================================
@@ -809,39 +1363,63 @@
    ========================================================= */
 
 @media (max-width: 1100px) {
+
   .ranking-page {
+
     padding: 22px 22px 40px;
+
   }
 
   .ranking-controls {
+
     gap: 10px;
+
   }
 
   .ranking-indicator-control {
+
     max-width: none;
+
     flex-basis: 100%;
+
   }
 
   .ranking-year-control,
+
   .ranking-show-control {
+
     width: 120px;
+
   }
 
   .ranking-order-control {
+
     flex: 1 1 190px;
+
   }
 
   .ranking-group-control {
+
     width: 90px;
+
   }
 
   .ranking-chart {
+
     height: clamp(
-      420px,
-      calc(100vh - 340px),
-      620px
+
+      460px,
+
+      calc(100vh - 280px),
+
+      680px
+
     );
+
+    min-height: 460px;
+
   }
+
 }
 
 /* =========================================================
@@ -849,53 +1427,83 @@
    ========================================================= */
 
 @media (max-width: 800px) {
+
   .ranking-page {
+
     padding: 18px 16px 32px;
+
   }
 
   .ranking-heading {
+
     flex-direction: column;
+
   }
 
   .italy-rank-card {
+
     width: 100%;
+
     box-sizing: border-box;
+
     text-align: left;
+
   }
 
   .ranking-controls {
+
     display: grid;
+
     grid-template-columns: 1fr 1fr;
+
   }
 
   .ranking-indicator-control {
+
     grid-column: 1 / -1;
+
     width: 100%;
+
   }
 
   .ranking-year-control,
+
   .ranking-show-control,
+
   .ranking-group-control {
+
     width: 100%;
+
   }
 
   .ranking-order-control {
+
     width: 100%;
+
   }
 
   .ranking-card-header {
+
     flex-direction: column;
+
   }
 
   .ranking-card-actions {
+
     width: 100%;
+
     justify-content: flex-start;
+
   }
 
   .ranking-chart {
+
     height: 430px;
+
     min-height: 430px;
+
   }
+
 }
 
 /* =========================================================
@@ -903,32 +1511,59 @@
    ========================================================= */
 
 @media (max-width: 560px) {
+
   .ranking-page {
+
     padding: 16px 12px 28px;
+
   }
 
   .ranking-controls {
+
     grid-template-columns: 1fr;
+
   }
 
   .ranking-indicator-control {
+
     grid-column: auto;
+
   }
 
   .ranking-chart {
+
     height: 360px;
+
     min-height: 360px;
+
     padding-left: 4px;
+
     padding-right: 4px;
+
   }
 
   .ranking-card-header {
-    padding: 17px 16px 13px;
+
+    padding: 15px 16px 11px;
+
+  }
+
+  .ranking-card-header h2 {
+
+    font-size: 18px;
+
+    max-height: 42px;
+
   }
 
   .ranking-table-head,
+
   .ranking-row {
+
     padding-left: 14px;
+
     padding-right: 14px;
+
   }
+
 }

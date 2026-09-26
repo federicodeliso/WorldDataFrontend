@@ -16,6 +16,7 @@ import {
 import Trends from "./pages/Trends";
 import Ranking from "./pages/Ranking";
 import Correlation from "./pages/Correlation";
+import CorrelationOverTime from "./pages/CorrelationOverTime";
 import Composition from "./pages/Composition";
 import Map from "./pages/Map";
 import SalaryTax from "./pages/SalaryTax";
@@ -55,6 +56,7 @@ const navItems = [
   { label: "Trends", icon: TrendingUp },
   { label: "Rankings", icon: BarChart3 },
   { label: "Correlation", icon: ScatterChart },
+  { label: "Correlation Over Time", icon: TrendingUp },
   { label: "Composition", icon: Layers3 },
   { label: "World Map", icon: MapIcon },
 ];
@@ -833,6 +835,17 @@ function App() {
             !error &&
             activePage === "Correlation" && (
               <Correlation />
+            )}
+
+
+          {/* =========================
+              CORRELATION OVER TIME
+          ========================= */}
+
+          {!loading &&
+            !error &&
+            activePage === "Correlation Over Time" && (
+              <CorrelationOverTime />
             )}
 
           {/* =========================
