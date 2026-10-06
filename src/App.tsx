@@ -31,11 +31,10 @@ import CorrelationOverTime from "./pages/CorrelationOverTime";
 
 import Regression from "./pages/Regression";
 import TimeSeries from "./pages/TimeSeries";
+import Forecasting from "./pages/Forecasting";
+import PanelData from "./pages/PanelData";
 
 import SalaryTax from "./pages/SalaryTax";
-
-
-
 
 import "./App.css";
 
@@ -119,14 +118,10 @@ const statisticsItems: NavItem[] = [
 ];
 
 const econometricsItems: NavItem[] = [
-  {
-    label: "Regression",
-    icon: Sigma,
-  },
-  {
-    label: "Time Series",
-    icon: TrendingUp,
-  },
+  { label: "Regression", icon: Sigma },
+  { label: "Time Series", icon: TrendingUp },
+  { label: "Forecasting", icon: TrendingUp },
+  { label: "Panel Data", icon: Database },
 ];
 
 /* =========================================================
@@ -989,6 +984,18 @@ function App() {
             activePage === "Time Series" && ( 
               <TimeSeries /> 
             )}
+
+          {!loading && 
+            !error && 
+            activePage === "Forecasting" && (
+              <Forecasting />
+          )}
+
+          {!loading &&
+            !error &&
+            activePage === "Panel Data" && (
+              <PanelData />
+          )}
 
           {/* =================================================
               TOOLS
