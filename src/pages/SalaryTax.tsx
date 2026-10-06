@@ -94,14 +94,18 @@ type WageDataset = {
 
 type Calculation = {
   gross: number;
+
   employeeContribution: number;
   employeeRate: number;
+
   taxableIncome: number;
   incomeTax: number;
   net: number;
+
   employerContribution: number;
   employerRate: number;
   employerCost: number;
+
   effectiveTaxRate: number;
   effectiveEmployeeBurden: number;
   totalGovernmentBurden: number;
@@ -109,8 +113,16 @@ type Calculation = {
 
 type OECDBreakdown = {
   country: string;
+
   employerContribution: number;
   employeeContribution: number;
+
+  employerSocialContribution: number;
+  employerPrivatePension: number;
+
+  employeeSocialContribution: number;
+  employeePrivatePension: number;
+
   incomeTax: number;
   netSalary: number;
   corporateCost: number;
@@ -163,9 +175,6 @@ const EURO_COUNTRIES = new Set([
   "Spain",
 ]);
 
-/*
- * OECD members.
- */
 const OECD_COUNTRIES = [
   "Australia",
   "Austria",
@@ -587,7 +596,7 @@ function getWageDataset(
 
   const prefix = isMedian
     ? "MEDIAN_GROSS_ANNUAL_WAGE"
-    : "AVG_ANNUAL_GROSS_WAGE";
+    : "AVERAGE_ANNUAL_GROSS_WAGE";
 
   let suffix: string;
 
@@ -611,10 +620,30 @@ function getWageDataset(
   };
 }
 
-/*
- * Match OECD names against the names
- * actually returned by the database.
- */
+function isPrivatePensionContribution(
+  contribution: PCRContribution
+): boolean {
+  const type =
+    contribution.contribution_type
+      .toLowerCase()
+      .trim();
+
+  return (
+    type.includes("private pension") ||
+    type.includes("private pensions") ||
+    type.includes("occupational pension") ||
+    type.includes("occupational pensions") ||
+    type.includes("supplementary pension") ||
+    type.includes("supplementary pensions") ||
+    type.includes("employment-related pension") ||
+    type.includes(
+      "employment related pension"
+    ) ||
+    type.includes("employment pension") ||
+    type.includes("workplace pension")
+  );
+}
+
 function findCountryName(
   wanted: string,
   available: string[]
@@ -630,7 +659,7 @@ function findCountryName(
     string,
     string[]
   > = {
-    "czechrepublic": [
+    czechrepublic: [
       "czech republic",
       "czechia",
     ],
@@ -799,18 +828,11 @@ export default function SalaryTax() {
     "CURRENCY"
   );
 
-  /*
-   * Series hidden through the chart legend.
-   */
   const [
     hiddenSeries,
     setHiddenSeries,
   ] = useState<string[]>([]);
 
-  /*
-   * Clicking the same legend item again
-   * brings that component back.
-   */
   const handleLegendClick = (
     event: any
   ) => {
@@ -831,10 +853,6 @@ export default function SalaryTax() {
     );
   };
 
-  /*
-   * When the calculation mode changes,
-   * start with all components visible.
-   */
   useEffect(() => {
     setHiddenSeries([]);
   }, [mode]);
@@ -873,10 +891,6 @@ export default function SalaryTax() {
       });
   }, []);
 
-  /*
-   * Load PIT and PCR for the selected
-   * calculator country.
-   */
   useEffect(() => {
     if (!country) {
       return;
@@ -933,10 +947,6 @@ export default function SalaryTax() {
       });
   }, [country, currency]);
 
-  /*
-   * Load wage data only for the
-   * Average / Median modes.
-   */
   useEffect(() => {
     if (
       !country ||
@@ -1048,9 +1058,76 @@ export default function SalaryTax() {
         );
     }, [pcr]);
 
-  /*
-   * Main calculator calculation.
-   */
+  const employeePrivatePensionRate =
+    useMemo(() => {
+      if (!pcr) {
+        return 0;
+      }
+
+      return pcr.contributions
+        .filter(
+          (item) =>
+            item.contributor
+              .toLowerCase()
+              .includes("employee") &&
+            isPrivatePensionContribution(
+              item
+            )
+        )
+        .reduce(
+          (sum, item) =>
+            sum + item.rate,
+          0
+        );
+    }, [pcr]);
+
+  const employeeSocialRate =
+    useMemo(() => {
+      return Math.max(
+        0,
+        employeeRate -
+          employeePrivatePensionRate
+      );
+    }, [
+      employeeRate,
+      employeePrivatePensionRate,
+    ]);
+
+  const employerPrivatePensionRate =
+    useMemo(() => {
+      if (!pcr) {
+        return 0;
+      }
+
+      return pcr.contributions
+        .filter(
+          (item) =>
+            item.contributor
+              .toLowerCase()
+              .includes("employer") &&
+            isPrivatePensionContribution(
+              item
+            )
+        )
+        .reduce(
+          (sum, item) =>
+            sum + item.rate,
+          0
+        );
+    }, [pcr]);
+
+  const employerSocialRate =
+    useMemo(() => {
+      return Math.max(
+        0,
+        employerRate -
+          employerPrivatePensionRate
+      );
+    }, [
+      employerRate,
+      employerPrivatePensionRate,
+    ]);
+
   const calculation =
     useMemo(() => {
       if (!pit) {
@@ -1105,30 +1182,6 @@ export default function SalaryTax() {
       employerRate,
     ]);
 
-  /*
-   * =====================================================
-   * OECD COMPARISON
-   *
-   * IMPORTANT:
-   * The OECD chart now follows the SAME salary
-   * mode selected in the calculator above.
-   *
-   * GROSS:
-   *     same gross input for every country
-   *
-   * NET:
-   *     same net input for every country
-   *
-   * CORPORATE:
-   *     same corporate cost for every country
-   *
-   * AVERAGE:
-   *     each country gets its own average wage
-   *
-   * MEDIAN:
-   *     each country gets its own median wage
-   * =====================================================
-   */
   useEffect(() => {
     let cancelled = false;
 
@@ -1170,9 +1223,6 @@ export default function SalaryTax() {
                 actual,
               }) => {
                 try {
-                  /*
-                   * Load PIT.
-                   */
                   const pitResponse =
                     await fetch(
                       `${API}/pit/${encodeURIComponent(
@@ -1189,9 +1239,6 @@ export default function SalaryTax() {
                   const pitData =
                     (await pitResponse.json()) as PITResponse;
 
-                  /*
-                   * Load PCR.
-                   */
                   const pcrResponse =
                     await fetch(
                       `${API}/pcr/${encodeURIComponent(
@@ -1242,21 +1289,64 @@ export default function SalaryTax() {
                         0
                       );
 
-                  /*
-                   * -----------------------------------
-                   * Determine what salary/cost to use.
-                   * -----------------------------------
-                   */
+                  const countryEmployeePrivatePensionRate =
+                    pcrData.contributions
+                      .filter(
+                        (item) =>
+                          item.contributor
+                            .toLowerCase()
+                            .includes(
+                              "employee"
+                            ) &&
+                          isPrivatePensionContribution(
+                            item
+                          )
+                      )
+                      .reduce(
+                        (sum, item) =>
+                          sum +
+                          item.rate,
+                        0
+                      );
+
+                  const countryEmployerPrivatePensionRate =
+                    pcrData.contributions
+                      .filter(
+                        (item) =>
+                          item.contributor
+                            .toLowerCase()
+                            .includes(
+                              "employer"
+                            ) &&
+                          isPrivatePensionContribution(
+                            item
+                          )
+                      )
+                      .reduce(
+                        (sum, item) =>
+                          sum +
+                          item.rate,
+                        0
+                      );
+
+                  const countryEmployeeSocialRate =
+                    Math.max(
+                      0,
+                      countryEmployeeRate -
+                        countryEmployeePrivatePensionRate
+                    );
+
+                  const countryEmployerSocialRate =
+                    Math.max(
+                      0,
+                      countryEmployerRate -
+                        countryEmployerPrivatePensionRate
+                    );
 
                   let countryCalculation:
                     | Calculation
                     | null = null;
 
-                  /*
-                   * AVERAGE / MEDIAN
-                   *
-                   * Each country gets its own wage.
-                   */
                   if (
                     mode === "AVERAGE" ||
                     mode === "MEDIAN"
@@ -1314,12 +1404,6 @@ export default function SalaryTax() {
                       );
                   }
 
-                  /*
-                   * GROSS
-                   *
-                   * Same gross amount for every
-                   * OECD country.
-                   */
                   if (
                     mode === "GROSS"
                   ) {
@@ -1334,12 +1418,6 @@ export default function SalaryTax() {
                       );
                   }
 
-                  /*
-                   * NET
-                   *
-                   * Same target net amount for
-                   * every OECD country.
-                   */
                   if (
                     mode === "NET"
                   ) {
@@ -1354,12 +1432,6 @@ export default function SalaryTax() {
                       );
                   }
 
-                  /*
-                   * CORPORATE
-                   *
-                   * Same corporate cost for
-                   * every OECD country.
-                   */
                   if (
                     mode ===
                     "CORPORATE"
@@ -1381,16 +1453,48 @@ export default function SalaryTax() {
                     return null;
                   }
 
+                  const gross =
+                    countryCalculation.gross;
+
+                  const employeePrivatePension =
+                    gross *
+                    countryEmployeePrivatePensionRate;
+
+                  const employeeSocialContribution =
+                    gross *
+                    countryEmployeeSocialRate;
+
+                  const employerPrivatePension =
+                    gross *
+                    countryEmployerPrivatePensionRate;
+
+                  const employerSocialContribution =
+                    gross *
+                    countryEmployerSocialRate;
+
                   return {
                     country: wanted,
+
                     employerContribution:
                       countryCalculation.employerContribution,
+
                     employeeContribution:
                       countryCalculation.employeeContribution,
+
+                    employerSocialContribution,
+
+                    employerPrivatePension,
+
+                    employeeSocialContribution,
+
+                    employeePrivatePension,
+
                     incomeTax:
                       countryCalculation.incomeTax,
+
                     netSalary:
                       countryCalculation.net,
+
                     corporateCost:
                       countryCalculation.employerCost,
                   };
@@ -1439,10 +1543,6 @@ export default function SalaryTax() {
     inputValue,
   ]);
 
-  /*
-   * Convert OECD calculation data into
-   * Recharts data.
-   */
   const oecdChartData =
     useMemo(() => {
       return [...oecdData]
@@ -1462,16 +1562,9 @@ export default function SalaryTax() {
             return {
               country: item.country,
 
-              "Employer contributions":
+              "Net salary":
                 total > 0
-                  ? (item.employerContribution /
-                      total) *
-                    100
-                  : 0,
-
-              "Employee contributions":
-                total > 0
-                  ? (item.employeeContribution /
+                  ? (item.netSalary /
                       total) *
                     100
                   : 0,
@@ -1483,9 +1576,30 @@ export default function SalaryTax() {
                     100
                   : 0,
 
-              "Net salary":
+              "Employee social contributions":
                 total > 0
-                  ? (item.netSalary /
+                  ? (item.employeeSocialContribution /
+                      total) *
+                    100
+                  : 0,
+
+              "Employee private pension":
+                total > 0
+                  ? (item.employeePrivatePension /
+                      total) *
+                    100
+                  : 0,
+
+              "Employer social contributions":
+                total > 0
+                  ? (item.employerSocialContribution /
+                      total) *
+                    100
+                  : 0,
+
+              "Employer private pension":
+                total > 0
+                  ? (item.employerPrivatePension /
                       total) *
                     100
                   : 0,
@@ -1498,17 +1612,23 @@ export default function SalaryTax() {
           return {
             country: item.country,
 
-            "Employer contributions":
-              item.employerContribution,
-
-            "Employee contributions":
-              item.employeeContribution,
+            "Net salary":
+              item.netSalary,
 
             "Income tax":
               item.incomeTax,
 
-            "Net salary":
-              item.netSalary,
+            "Employee social contributions":
+              item.employeeSocialContribution,
+
+            "Employee private pension":
+              item.employeePrivatePension,
+
+            "Employer social contributions":
+              item.employerSocialContribution,
+
+            "Employer private pension":
+              item.employerPrivatePension,
 
             corporateCost:
               item.corporateCost,
@@ -1540,11 +1660,140 @@ export default function SalaryTax() {
   const chartModeDescription =
     getChartModeDescription(mode);
 
-  /*
-   * =====================================================
-   * RENDER
-   * =====================================================
-   */
+  const employeeSocialAmount =
+    calculation
+      ? calculation.gross *
+        employeeSocialRate
+      : 0;
+
+  const employeePrivatePensionAmount =
+    calculation
+      ? calculation.gross *
+        employeePrivatePensionRate
+      : 0;
+
+  const employerSocialAmount =
+    calculation
+      ? calculation.gross *
+        employerSocialRate
+      : 0;
+
+  const employerPrivatePensionAmount =
+    calculation
+      ? calculation.gross *
+        employerPrivatePensionRate
+      : 0;
+
+  const hasEmployeePrivatePension =
+    employeePrivatePensionRate > 0;
+
+  const hasEmployerPrivatePension =
+    employerPrivatePensionRate > 0;
+
+  const hasAnyPrivatePension =
+    hasEmployeePrivatePension ||
+    hasEmployerPrivatePension;
+
+  const employerContributionAmount =
+    employerSocialAmount +
+    employerPrivatePensionAmount;
+
+  const employeeContributionAmount =
+    employeeSocialAmount +
+    employeePrivatePensionAmount;
+
+  const grossBurdenRates = calculation
+    ? {
+        employerSocial:
+          calculation.gross > 0
+            ? employerSocialAmount /
+              calculation.gross
+            : 0,
+
+        employerPension:
+          calculation.gross > 0
+            ? employerPrivatePensionAmount /
+              calculation.gross
+            : 0,
+
+        employeeSocial:
+          calculation.gross > 0
+            ? employeeSocialAmount /
+              calculation.gross
+            : 0,
+
+        employeePension:
+          calculation.gross > 0
+            ? employeePrivatePensionAmount /
+              calculation.gross
+            : 0,
+
+        incomeTax:
+          calculation.gross > 0
+            ? calculation.incomeTax /
+              calculation.gross
+            : 0,
+
+        total:
+          calculation.gross > 0
+            ? (
+                employerSocialAmount +
+                employerPrivatePensionAmount +
+                employeeSocialAmount +
+                employeePrivatePensionAmount +
+                calculation.incomeTax
+              ) /
+              calculation.gross
+            : 0,
+      }
+    : null;
+
+  const compensationBurdenRates =
+    calculation
+      ? {
+          employerSocial:
+            calculation.employerCost > 0
+              ? employerSocialAmount /
+                calculation.employerCost
+              : 0,
+
+          employerPension:
+            calculation.employerCost > 0
+              ? employerPrivatePensionAmount /
+                calculation.employerCost
+              : 0,
+
+          employeeSocial:
+            calculation.employerCost > 0
+              ? employeeSocialAmount /
+                calculation.employerCost
+              : 0,
+
+          employeePension:
+            calculation.employerCost > 0
+              ? employeePrivatePensionAmount /
+                calculation.employerCost
+              : 0,
+
+          incomeTax:
+            calculation.employerCost > 0
+              ? calculation.incomeTax /
+                calculation.employerCost
+              : 0,
+
+          total:
+            calculation.employerCost > 0
+              ? (
+                  employerSocialAmount +
+                  employerPrivatePensionAmount +
+                  employeeSocialAmount +
+                  employeePrivatePensionAmount +
+                  calculation.incomeTax
+                ) /
+                calculation.employerCost
+              : 0,
+        }
+      : null;
 
   return (
     <div className="salary-page">
@@ -1900,6 +2149,24 @@ export default function SalaryTax() {
                 <div className="salary-stat-grid">
                   <div className="salary-stat">
                     <span>
+                      Corporate cost
+                    </span>
+
+                    <strong>
+                      {
+                        currencySymbols[
+                          currency
+                        ]
+                      }
+                      {formatMoney(
+                        calculation.employerCost,
+                        currency
+                      )}
+                    </strong>
+                  </div>
+
+                  <div className="salary-stat">
+                    <span>
                       Gross salary
                     </span>
 
@@ -1914,30 +2181,6 @@ export default function SalaryTax() {
                         currency
                       )}
                     </strong>
-                  </div>
-
-                  <div className="salary-stat">
-                    <span>
-                      Employee contributions
-                    </span>
-
-                    <strong>
-                      {
-                        currencySymbols[
-                          currency
-                        ]
-                      }
-                      {formatMoney(
-                        calculation.employeeContribution,
-                        currency
-                      )}
-                    </strong>
-
-                    <small>
-                      {formatPercent(
-                        calculation.employeeRate
-                      )}
-                    </small>
                   </div>
 
                   <div className="salary-stat">
@@ -1966,10 +2209,46 @@ export default function SalaryTax() {
 
                   <div className="salary-stat">
                     <span>
-                      Employer cost
+                      Net salary
                     </span>
 
                     <strong>
+                      {
+                        currencySymbols[
+                          currency
+                        ]
+                      }
+                      {formatMoney(
+                        calculation.net,
+                        currency
+                      )}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="salary-breakdown">
+                  <div className="salary-breakdown-heading">
+                    <strong>
+                      Corporate cost → net salary
+                    </strong>
+
+                    <span>
+                      Employer cost → employee net pay
+                    </span>
+                  </div>
+
+                  <div className="salary-breakdown-row">
+                    <div className="salary-breakdown-label">
+                      <strong>
+                        Corporate cost
+                      </strong>
+
+                      <span>
+                        Total employer labour cost
+                      </span>
+                    </div>
+
+                    <strong className="salary-breakdown-value">
                       {
                         currencySymbols[
                           currency
@@ -1981,18 +2260,64 @@ export default function SalaryTax() {
                       )}
                     </strong>
                   </div>
-                </div>
 
-                <div className="salary-breakdown">
-                  <div className="salary-breakdown-heading">
-                    <strong>
-                      Salary breakdown
+                  <div className="salary-breakdown-row salary-breakdown-subrow">
+                    <div className="salary-breakdown-label">
+                      <strong>
+                        Employer social contributions
+                      </strong>
+
+                      <span>
+                        Statutory social contributions ·{" "}
+                        {formatPercent(
+                          employerSocialRate
+                        )}
+                      </span>
+                    </div>
+
+                    <strong className="salary-breakdown-value">
+                      −
+                      {
+                        currencySymbols[
+                          currency
+                        ]
+                      }
+                      {formatMoney(
+                        employerSocialAmount,
+                        currency
+                      )}
                     </strong>
-
-                    <span>
-                      Annual calculation
-                    </span>
                   </div>
+
+                  {hasEmployerPrivatePension && (
+                    <div className="salary-breakdown-row salary-breakdown-subrow">
+                      <div className="salary-breakdown-label">
+                        <strong>
+                          Employer private pension
+                        </strong>
+
+                        <span>
+                          Private / occupational pension ·{" "}
+                          {formatPercent(
+                            employerPrivatePensionRate
+                          )}
+                        </span>
+                      </div>
+
+                      <strong className="salary-breakdown-value">
+                        −
+                        {
+                          currencySymbols[
+                            currency
+                          ]
+                        }
+                        {formatMoney(
+                          employerPrivatePensionAmount,
+                          currency
+                        )}
+                      </strong>
+                    </div>
+                  )}
 
                   <div className="salary-breakdown-row">
                     <div className="salary-breakdown-label">
@@ -2001,7 +2326,7 @@ export default function SalaryTax() {
                       </strong>
 
                       <span>
-                        Before deductions
+                        Employee gross compensation
                       </span>
                     </div>
 
@@ -2018,14 +2343,17 @@ export default function SalaryTax() {
                     </strong>
                   </div>
 
-                  <div className="salary-breakdown-row">
+                  <div className="salary-breakdown-row salary-breakdown-subrow">
                     <div className="salary-breakdown-label">
                       <strong>
-                        Employee contributions
+                        Employee social contributions
                       </strong>
 
                       <span>
-                        Social contributions
+                        Statutory social contributions ·{" "}
+                        {formatPercent(
+                          employeeSocialRate
+                        )}
                       </span>
                     </div>
 
@@ -2037,11 +2365,41 @@ export default function SalaryTax() {
                         ]
                       }
                       {formatMoney(
-                        calculation.employeeContribution,
+                        employeeSocialAmount,
                         currency
                       )}
                     </strong>
                   </div>
+
+                  {hasEmployeePrivatePension && (
+                    <div className="salary-breakdown-row salary-breakdown-subrow">
+                      <div className="salary-breakdown-label">
+                        <strong>
+                          Employee private pension
+                        </strong>
+
+                        <span>
+                          Private / occupational pension ·{" "}
+                          {formatPercent(
+                            employeePrivatePensionRate
+                          )}
+                        </span>
+                      </div>
+
+                      <strong className="salary-breakdown-value">
+                        −
+                        {
+                          currencySymbols[
+                            currency
+                          ]
+                        }
+                        {formatMoney(
+                          employeePrivatePensionAmount,
+                          currency
+                        )}
+                      </strong>
+                    </div>
+                  )}
 
                   <div className="salary-breakdown-row">
                     <div className="salary-breakdown-label">
@@ -2050,7 +2408,10 @@ export default function SalaryTax() {
                       </strong>
 
                       <span>
-                        Progressive PIT
+                        Progressive personal income tax ·{" "}
+                        {formatPercent(
+                          calculation.effectiveTaxRate
+                        )}
                       </span>
                     </div>
 
@@ -2075,7 +2436,7 @@ export default function SalaryTax() {
                       </strong>
 
                       <span>
-                        After employee deductions
+                        Final annual pay after employee deductions
                       </span>
                     </div>
 
@@ -2093,56 +2454,6 @@ export default function SalaryTax() {
                   </div>
                 </div>
 
-                <div className="salary-burden">
-                  <div className="salary-burden-heading">
-                    <ShieldCheck
-                      size={18}
-                    />
-
-                    <strong>
-                      Effective burden
-                    </strong>
-                  </div>
-
-                  <div className="salary-burden-grid">
-                    <div className="salary-burden-item">
-                      <span>
-                        Employee burden
-                      </span>
-
-                      <strong>
-                        {formatPercent(
-                          calculation.effectiveEmployeeBurden
-                        )}
-                      </strong>
-                    </div>
-
-                    <div className="salary-burden-item">
-                      <span>
-                        Total government burden
-                      </span>
-
-                      <strong>
-                        {formatPercent(
-                          calculation.totalGovernmentBurden
-                        )}
-                      </strong>
-                    </div>
-
-                    <div className="salary-burden-item">
-                      <span>
-                        Employer contribution
-                      </span>
-
-                      <strong>
-                        {formatPercent(
-                          calculation.employerRate
-                        )}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="salary-note">
                   <strong>
                     Important
@@ -2156,12 +2467,313 @@ export default function SalaryTax() {
                     include deductions, tax credits,
                     local taxes or contribution caps
                     unless represented in the source data.
+                    Private or occupational pension
+                    contributions are displayed separately
+                    when identified in the source data.
                   </span>
                 </div>
               </div>
             )}
         </section>
       </div>
+
+      {/* =====================================================
+          TAX & CONTRIBUTION BURDEN
+          ===================================================== */}
+
+      {calculation && hasWageData && (
+        <section className="salary-tax-section salary-burden-section">
+          <div className="salary-tax-section-heading">
+            <div>
+              <h2>
+                Tax & Contribution Burden
+              </h2>
+
+              <p>
+                Employer and employee contributions,
+                pension contributions and income tax
+                expressed relative to gross income and
+                total compensation.
+              </p>
+            </div>
+
+            <span>
+              {YEAR} · {country}
+            </span>
+          </div>
+
+          <div className="salary-tax-table salary-burden-table">
+
+            {/* GROUP HEADER */}
+
+            <div className="salary-burden-group-header">
+              <div />
+
+              <div className="salary-burden-group employer-group">
+                Employer
+              </div>
+
+              <div className="salary-burden-group employee-group">
+                Employee
+              </div>
+
+              <div className="salary-burden-group tax-group">
+                Income tax
+              </div>
+
+              <div className="salary-burden-group total-group">
+                Total
+              </div>
+            </div>
+
+            {/* COLUMN HEADER */}
+
+            <div className="salary-burden-header">
+              <span>
+                Basis
+              </span>
+
+              <span>
+                Social
+              </span>
+
+              <span>
+                Pension
+              </span>
+
+              <span>
+                Social
+              </span>
+
+              <span>
+                Pension
+              </span>
+
+              <span>
+                Tax
+              </span>
+
+              <span>
+                All components
+              </span>
+            </div>
+
+            {/* GROSS INCOME */}
+
+            <div className="salary-burden-row">
+              <div className="salary-burden-basis">
+                <strong>
+                  Gross income
+                </strong>
+
+                <small>
+                  % of gross salary
+                </small>
+              </div>
+
+              <span>
+                {formatPercent(
+                  grossBurdenRates?.employerSocial ??
+                    0
+                )}
+              </span>
+
+              <span
+                className={
+                  hasEmployerPrivatePension
+                    ? ""
+                    : "salary-burden-muted"
+                }
+              >
+                {hasEmployerPrivatePension
+                  ? formatPercent(
+                      grossBurdenRates?.employerPension ??
+                        0
+                    )
+                  : "—"}
+              </span>
+
+              <span>
+                {formatPercent(
+                  grossBurdenRates?.employeeSocial ??
+                    0
+                )}
+              </span>
+
+              <span
+                className={
+                  hasEmployeePrivatePension
+                    ? ""
+                    : "salary-burden-muted"
+                }
+              >
+                {hasEmployeePrivatePension
+                  ? formatPercent(
+                      grossBurdenRates?.employeePension ??
+                        0
+                    )
+                  : "—"}
+              </span>
+
+              <span>
+                {formatPercent(
+                  grossBurdenRates?.incomeTax ??
+                    0
+                )}
+              </span>
+
+              <strong className="salary-burden-total">
+                {formatPercent(
+                  grossBurdenRates?.total ??
+                    0
+                )}
+              </strong>
+            </div>
+
+            {/* TOTAL COMPENSATION */}
+
+            <div className="salary-burden-row salary-burden-row-total">
+              <div className="salary-burden-basis">
+                <strong>
+                  Total compensation
+                </strong>
+
+                <small>
+                  % of employer labour cost
+                </small>
+              </div>
+
+              <span>
+                {formatPercent(
+                  compensationBurdenRates?.employerSocial ??
+                    0
+                )}
+              </span>
+
+              <span
+                className={
+                  hasEmployerPrivatePension
+                    ? ""
+                    : "salary-burden-muted"
+                }
+              >
+                {hasEmployerPrivatePension
+                  ? formatPercent(
+                      compensationBurdenRates?.employerPension ??
+                        0
+                    )
+                  : "—"}
+              </span>
+
+              <span>
+                {formatPercent(
+                  compensationBurdenRates?.employeeSocial ??
+                    0
+                )}
+              </span>
+
+              <span
+                className={
+                  hasEmployeePrivatePension
+                    ? ""
+                    : "salary-burden-muted"
+                }
+              >
+                {hasEmployeePrivatePension
+                  ? formatPercent(
+                      compensationBurdenRates?.employeePension ??
+                        0
+                    )
+                  : "—"}
+              </span>
+
+              <span>
+                {formatPercent(
+                  compensationBurdenRates?.incomeTax ??
+                    0
+                )}
+              </span>
+
+              <strong className="salary-burden-total">
+                {formatPercent(
+                  compensationBurdenRates?.total ??
+                    0
+                )}
+              </strong>
+            </div>
+
+            {/* LEGEND */}
+
+            <div className="salary-burden-legend">
+              <div>
+                <span className="salary-burden-dot employer" />
+
+                <div>
+                  <strong>
+                    Employer
+                  </strong>
+
+                  <span>
+                    Social contributions
+                    {hasEmployerPrivatePension
+                      ? " + private / occupational pension"
+                      : ""}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="salary-burden-dot employee" />
+
+                <div>
+                  <strong>
+                    Employee
+                  </strong>
+
+                  <span>
+                    Social contributions
+                    {hasEmployeePrivatePension
+                      ? " + private / occupational pension"
+                      : ""}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="salary-burden-dot tax" />
+
+                <div>
+                  <strong>
+                    Income tax
+                  </strong>
+
+                  <span>
+                    Personal income tax paid by the employee
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="salary-burden-dot total" />
+
+                <div>
+                  <strong>
+                    Total
+                  </strong>
+
+                  <span>
+                    All employer, employee and tax components
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =====================================================
+          PERSONAL INCOME TAX BRACKETS
+          ===================================================== */}
 
       {pit && (
         <section className="salary-tax-section">
@@ -2217,9 +2829,11 @@ export default function SalaryTax() {
                     {bracket.lower_bound ===
                     null
                       ? "—"
-                      : `${currencySymbols[
-                          currency
-                        ]}${formatMoney(
+                      : `${
+                          currencySymbols[
+                            currency
+                          ]
+                        }${formatMoney(
                           bracket.lower_bound,
                           currency
                         )}`}
@@ -2229,9 +2843,11 @@ export default function SalaryTax() {
                     {bracket.upper_bound ===
                     null
                       ? "∞"
-                      : `${currencySymbols[
-                          currency
-                        ]}${formatMoney(
+                      : `${
+                          currencySymbols[
+                            currency
+                          ]
+                        }${formatMoney(
                           bracket.upper_bound,
                           currency
                         )}`}
@@ -2252,7 +2868,7 @@ export default function SalaryTax() {
       )}
 
       {/* =====================================================
-          OECD SALARY BREAKDOWN
+          OECD COMPARISON
           ===================================================== */}
 
       <section className="salary-oecd-section">
@@ -2337,9 +2953,13 @@ export default function SalaryTax() {
                   </strong>
 
                   <span>
-                    Employer contributions,
-                    employee contributions,
-                    income tax and net salary.
+                    Corporate cost, employer
+                    contributions, gross salary,
+                    employee contributions, income
+                    tax and net salary.
+                    {hasAnyPrivatePension
+                      ? " Private pension is shown separately when present."
+                      : ""}
                   </span>
                 </div>
 
@@ -2382,32 +3002,39 @@ export default function SalaryTax() {
                       }}
                     />
 
-
                     <YAxis
                       domain={
-                        chartValueMode === "PERCENT"
+                        chartValueMode ===
+                        "PERCENT"
                           ? [0, 100]
                           : [0, "auto"]
                       }
                       tickFormatter={(value) => {
                         if (
-                          chartValueMode === "PERCENT"
+                          chartValueMode ===
+                          "PERCENT"
                         ) {
-                          return `${Number(value).toFixed(0)}%`;
+                          return `${Number(
+                            value
+                          ).toFixed(0)}%`;
                         }
 
                         return `${
-                          currencySymbols[currency]
+                          currencySymbols[
+                            currency
+                          ]
                         }${new Intl.NumberFormat(
                           "en-US",
                           {
-                            notation: "compact",
+                            notation:
+                              "compact",
                             maximumFractionDigits: 1,
                           }
-                        ).format(Number(value))}`;
+                        ).format(
+                          Number(value)
+                        )}`;
                       }}
                     />
-
 
                     <Tooltip
                       formatter={(
@@ -2446,7 +3073,8 @@ export default function SalaryTax() {
                       verticalAlign="bottom"
                       height={50}
                       wrapperStyle={{
-                        cursor: "pointer",
+                        cursor:
+                          "pointer",
                       }}
                       onClick={
                         handleLegendClick
@@ -2474,25 +3102,44 @@ export default function SalaryTax() {
                     />
 
                     <Bar
-                      dataKey="Employee contributions"
+                      dataKey="Employee social contributions"
                       stackId="salary"
-                      name="Employee contributions"
+                      name="Employee social contributions"
                       fill="#7c3aed"
                       hide={hiddenSeries.includes(
-                        "Employee contributions"
+                        "Employee social contributions"
                       )}
                     />
 
                     <Bar
-                      dataKey="Employer contributions"
+                      dataKey="Employee private pension"
                       stackId="salary"
-                      name="Employer contributions"
-                      fill="#2563eb"
+                      name="Employee private pension"
+                      fill="#a855f7"
                       hide={hiddenSeries.includes(
-                        "Employer contributions"
+                        "Employee private pension"
                       )}
                     />
 
+                    <Bar
+                      dataKey="Employer social contributions"
+                      stackId="salary"
+                      name="Employer social contributions"
+                      fill="#2563eb"
+                      hide={hiddenSeries.includes(
+                        "Employer social contributions"
+                      )}
+                    />
+
+                    <Bar
+                      dataKey="Employer private pension"
+                      stackId="salary"
+                      name="Employer private pension"
+                      fill="#60a5fa"
+                      hide={hiddenSeries.includes(
+                        "Employer private pension"
+                      )}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -2501,7 +3148,9 @@ export default function SalaryTax() {
                 <span>
                   Total bar height represents
                   corporate cost: gross salary
-                  plus employer contributions.
+                  plus employer social
+                  contributions and employer
+                  private pension.
                 </span>
 
                 <span>

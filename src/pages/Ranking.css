@@ -1122,7 +1122,7 @@
 
   height: clamp(
 
-    500px,
+    800px,
 
     calc(100vh - 240px),
 
@@ -1130,7 +1130,7 @@
 
   );
 
-  min-height: 500px;
+  min-height: 800px;
 
   padding: 8px 22px 12px;
 
@@ -1408,7 +1408,7 @@
 
     height: clamp(
 
-      460px,
+      800px,
 
       calc(100vh - 280px),
 
@@ -1416,7 +1416,7 @@
 
     );
 
-    min-height: 460px;
+    min-height: 800px;
 
   }
 
@@ -1498,9 +1498,9 @@
 
   .ranking-chart {
 
-    height: 430px;
+    height: 800px;
 
-    min-height: 430px;
+    min-height: 800px;
 
   }
 
@@ -1532,9 +1532,9 @@
 
   .ranking-chart {
 
-    height: 360px;
+    height: 800px;
 
-    min-height: 360px;
+    min-height: 800px;
 
     padding-left: 4px;
 
