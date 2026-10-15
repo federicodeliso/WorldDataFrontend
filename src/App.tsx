@@ -38,7 +38,7 @@ import SalaryTax from "./pages/SalaryTax";
 
 import "./App.css";
 
-const API = "http://127.0.0.1:8000";
+const API = "https://worlddataapi-kf6d.onrender.com";
 
 // Temporary password — change this later.
 const SITE_PASSWORD = "W7mQ2xL9pR4k";
