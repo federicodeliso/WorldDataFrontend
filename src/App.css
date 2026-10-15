@@ -89,43 +89,209 @@ button {
   width: 250px;
   height: 100vh;
 
-  background: var(--wd-sidebar);
+  background:
+    linear-gradient(
+      180deg,
+      #0755a5 0%,
+      #064b91 55%,
+      #043f7c 100%
+    );
+
   color: #ffffff;
 
   display: flex;
   flex-direction: column;
 
   z-index: 100;
-  overflow-y: auto;
+
+  overflow: visible;
+
+  box-shadow:
+    4px 0 24px rgba(15, 23, 42, 0.08);
+
+  transition:
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
 .brand {
+  position: relative;
+
   height: 76px;
+  min-height: 76px;
 
   display: flex;
   align-items: center;
 
-  padding: 0 24px;
+  gap: 12px;
 
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0 18px;
+
+  border-bottom:
+    1px solid rgba(255, 255, 255, 0.10);
+}
+
+
+/* Logo */
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+
+  flex: 0 0 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff 0%,
+      #dceeff 100%
+    );
+
+  box-shadow:
+    0 5px 16px rgba(0, 0, 0, 0.15);
+}
+
+.brand-mark-grid {
+  width: 21px;
+  height: 21px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  grid-template-rows:
+    repeat(2, 1fr);
+
+  gap: 3px;
+}
+
+.brand-mark-grid span {
+  display: block;
+
+  border-radius: 2px;
+
+  background: #0755a5;
+}
+
+.brand-mark-grid span:nth-child(1) {
+  opacity: 0.42;
+}
+
+.brand-mark-grid span:nth-child(2) {
+  opacity: 0.68;
+}
+
+.brand-mark-grid span:nth-child(3) {
+  opacity: 0.72;
+}
+
+.brand-mark-grid span:nth-child(4) {
+  opacity: 1;
+}
+
+
+/* Brand text */
+
+.brand-copy {
+  min-width: 0;
+
+  overflow: hidden;
+
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s ease;
 }
 
 .brand-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+
+  line-height: 1.2;
+
+  letter-spacing: -0.025em;
+
+  white-space: nowrap;
 }
 
 .brand-subtitle {
-  margin-top: 2px;
+  margin-top: 4px;
 
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
 
-  color: #98a2b3;
-  letter-spacing: 0.04em;
+  line-height: 1;
+
+  color:
+    rgba(255, 255, 255, 0.62);
+
+  letter-spacing: 0.075em;
+
   text-transform: uppercase;
+
+  white-space: nowrap;
 }
+
+
+/* =========================================================
+   SIDEBAR TOGGLE
+   ========================================================= */
+
+.sidebar-toggle {
+  position: absolute;
+
+  right: -14px;
+  top: 50%;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  transform: translateY(-50%);
+
+  border: 1px solid #e4e7ec;
+  border-radius: 50%;
+
+  background: #ffffff;
+  color: #315b86;
+
+  box-shadow:
+    0 3px 12px rgba(15, 23, 42, 0.16);
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sidebar-toggle:hover {
+  background: #f8fafc;
+  color: #0755a5;
+}
+
+.sidebar-toggle:active {
+  transform:
+    translateY(-50%)
+    scale(0.94);
+}
+
 
 /* =========================================================
    NAVIGATION
@@ -133,7 +299,11 @@ button {
 
 .nav {
   flex: 1;
+
   padding: 20px 12px 24px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-section {
@@ -142,23 +312,34 @@ button {
 
 .nav-label {
   padding: 0 12px;
+
   margin-bottom: 7px;
 
   font-size: 10px;
   line-height: 18px;
+
   font-weight: 700;
 
-  color: #667085;
+  color:
+    rgba(255, 255, 255, 0.46);
 
   letter-spacing: 0.09em;
+
   text-transform: uppercase;
+
+  white-space: nowrap;
+
+  transition:
+    opacity 0.15s ease;
 }
 
 .nav-item {
   width: 100%;
+  min-height: 38px;
 
   display: flex;
   align-items: center;
+
   gap: 11px;
 
   padding: 9px 12px;
@@ -169,7 +350,9 @@ button {
   border-radius: 7px;
 
   background: transparent;
-  color: #98a2b3;
+
+  color:
+    rgba(255, 255, 255, 0.68);
 
   font-size: 13px;
   font-weight: 500;
@@ -182,31 +365,132 @@ button {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.055);
-  color: #f2f4f7;
+  background:
+    rgba(255, 255, 255, 0.08);
+
+  color: #ffffff;
 }
 
 .nav-item.active {
-  background: rgba(255, 255, 255, 0.09);
+  background:
+    rgba(255, 255, 255, 0.16);
+
   color: #ffffff;
+
   font-weight: 600;
+
+  box-shadow:
+    inset 3px 0 0 #ffffff;
 }
 
 .nav-item svg {
   width: 16px;
   height: 16px;
-  flex-shrink: 0;
+
+  flex: 0 0 16px;
 }
+
+
+/* =========================================================
+   SIDEBAR FOOTER
+   ========================================================= */
 
 .sidebar-footer {
-  padding: 16px 20px;
+  min-height: 50px;
 
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0 20px;
 
-  color: #667085;
+  display: flex;
+  align-items: center;
 
-  font-size: 11px;
+  border-top:
+    1px solid rgba(255, 255, 255, 0.08);
+
+  color:
+    rgba(255, 255, 255, 0.35);
+
+  font-size: 9px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.10em;
+
+  text-transform: uppercase;
 }
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+   ========================================================= */
+
+.sidebar.collapsed {
+  width: 72px;
+}
+
+.sidebar.collapsed .brand {
+  justify-content: center;
+
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.sidebar.collapsed .brand-copy {
+  width: 0;
+
+  opacity: 0;
+
+  transform: translateX(-6px);
+
+  pointer-events: none;
+}
+
+.sidebar.collapsed .nav {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.sidebar.collapsed .nav-label {
+  height: 1px;
+
+  margin-top: 0;
+  margin-bottom: 7px;
+
+  padding: 0;
+
+  opacity: 0;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .nav-item span {
+  width: 0;
+
+  opacity: 0;
+
+  overflow: hidden;
+
+  pointer-events: none;
+}
+
+.sidebar.collapsed .nav-item.active {
+  box-shadow: none;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  justify-content: center;
+
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  font-size: 0;
+}
+
 
 /* =========================================================
    MAIN
@@ -214,7 +498,20 @@ button {
 
 .main {
   min-height: 100vh;
+
+  width: calc(100% - 250px);
+
   margin-left: 250px;
+
+  transition:
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed ~ .main {
+  width: calc(100% - 72px);
+
+  margin-left: 72px;
 }
 
 /* =========================================================
@@ -1679,16 +1976,33 @@ textarea.form-control {
 }
 
 @media (max-width: 850px) {
+
   .sidebar {
+    width: 250px;
+
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
+
+    transition:
+      transform 0.22s ease;
   }
 
-  .sidebar.open {
+  .sidebar.mobile-open {
     transform: translateX(0);
   }
 
-  .main {
+  /*
+     On mobile, collapsed/expanded is controlled
+     by the drawer rather than the desktop toggle.
+  */
+
+  .sidebar.collapsed {
+    width: 250px;
+  }
+
+  .main,
+  .sidebar.collapsed ~ .main {
+    width: 100%;
+
     margin-left: 0;
   }
 
@@ -1726,6 +2040,10 @@ textarea.form-control {
   .form-grid.three,
   .form-grid.four {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .sidebar-toggle {
+    display: none;
   }
 }
 

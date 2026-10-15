@@ -12,6 +12,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -74,6 +75,9 @@ function Trends() {
   const [indicatorsOpen, setIndicatorsOpen] = useState(false);
   const [yearOpen, setYearOpen] = useState(false);
 
+  const [baseYear, setBaseYear] = useState<number | null>(null);
+  const [baseYearOpen, setBaseYearOpen] = useState(false);
+
   const [countrySearch, setCountrySearch] = useState("");
   const [indicatorSearch, setIndicatorSearch] = useState("");
 
@@ -87,14 +91,18 @@ function Trends() {
   const controlsRef = useRef<HTMLDivElement>(null);
 
   const chartRef = useRef<HTMLDivElement>(null);
+  const indexedChartRef = useRef<HTMLDivElement>(null);
 
   const [hiddenSeries, setHiddenSeries] = useState<
     Record<string, boolean>
   >({});
 
+  const [hiddenIndexedSeries, setHiddenIndexedSeries] = useState<
+    Record<string, boolean>
+  >({});
+
   const [downloading, setDownloading] = useState(false);
-
-
+  const [downloadingIndexed, setDownloadingIndexed] = useState(false);
 
   /*
    * ---------------------------------------------------------
@@ -174,6 +182,7 @@ function Trends() {
         setCountriesOpen(false);
         setIndicatorsOpen(false);
         setYearOpen(false);
+        setBaseYearOpen(false);
       }
     }
 
@@ -251,6 +260,7 @@ function Trends() {
 
             rows.forEach((row: any) => {
               const year = Number(row.year);
+
               const value =
                 row.value === null ||
                 row.value === undefined
@@ -306,6 +316,7 @@ function Trends() {
             ? err.message
             : "Could not load trend data."
         );
+
         setObservations([]);
       } finally {
         setLoadingData(false);
@@ -343,6 +354,47 @@ function Trends() {
 
   /*
    * ---------------------------------------------------------
+   * AVAILABLE BASE YEARS
+   * ---------------------------------------------------------
+   */
+
+  const availableBaseYears = useMemo(() => {
+    return availableYears.filter(
+      (year) => year >= startYear && year <= endYear
+    );
+  }, [availableYears, startYear, endYear]);
+
+  /*
+   * Make sure the base year remains valid when the
+   * year range changes.
+   */
+
+  useEffect(() => {
+    if (availableBaseYears.length === 0) {
+      setBaseYear(null);
+      return;
+    }
+
+    setBaseYear((current) => {
+      if (
+        current !== null &&
+        availableBaseYears.includes(current)
+      ) {
+        return current;
+      }
+
+      if (availableBaseYears.includes(2020)) {
+        return 2020;
+      }
+
+      return availableBaseYears[
+        availableBaseYears.length - 1
+      ];
+    });
+  }, [availableBaseYears]);
+
+  /*
+   * ---------------------------------------------------------
    * FILTERED OBSERVATIONS
    * ---------------------------------------------------------
    */
@@ -376,7 +428,9 @@ function Trends() {
       };
 
       filteredObservations
-        .filter((observation) => observation.year === year)
+        .filter(
+          (observation) => observation.year === year
+        )
         .forEach((observation) => {
           const key = `${observation.country} · ${observation.indicator}`;
 
@@ -385,7 +439,6 @@ function Trends() {
             observation.value === undefined
               ? null
               : Number(observation.value);
-        
         });
 
       return row;
@@ -409,6 +462,147 @@ function Trends() {
 
     return Array.from(keys);
   }, [filteredObservations]);
+
+  /*
+   * ---------------------------------------------------------
+   * INDEXED DATA
+   * ---------------------------------------------------------
+   *
+   * Every country × indicator series has its own base value.
+   *
+   * Index = value / base value × 100
+   *
+   * Example:
+   * Base year value = 200
+   * Current value = 250
+   * Index = 125
+   */
+
+  const indexedChartData = useMemo(() => {
+    const years = Array.from(
+      new Set(
+        filteredObservations
+          .map((row) => row.year)
+          .filter(Number.isFinite)
+      )
+    ).sort((a, b) => a - b);
+
+    /*
+     * Build base values for every individual series.
+     */
+    const baseValues = new Map<string, number>();
+
+    filteredObservations
+      .filter(
+        (observation) =>
+          observation.year === baseYear &&
+          observation.value !== null &&
+          Number.isFinite(observation.value)
+      )
+      .forEach((observation) => {
+        const key = `${observation.country} · ${observation.indicator}`;
+
+        const value = Number(observation.value);
+
+        /*
+         * A zero base value cannot be used for an index.
+         */
+        if (Number.isFinite(value) && value !== 0) {
+          baseValues.set(key, value);
+        }
+      });
+
+    return years.map((year) => {
+      const row: Record<string, number | string | null> = {
+        year,
+      };
+
+      filteredObservations
+        .filter(
+          (observation) => observation.year === year
+        )
+        .forEach((observation) => {
+          const key = `${observation.country} · ${observation.indicator}`;
+
+          const baseValue = baseValues.get(key);
+
+          if (
+            baseValue === undefined ||
+            observation.value === null ||
+            !Number.isFinite(observation.value)
+          ) {
+            row[key] = null;
+            return;
+          }
+
+          row[key] =
+            (Number(observation.value) / baseValue) * 100;
+        });
+
+      return row;
+    });
+  }, [filteredObservations, baseYear]);
+
+  /*
+   * ---------------------------------------------------------
+   * INDEXED Y-AXIS DOMAIN
+   * ---------------------------------------------------------
+   *
+   * Focus the Y-axis on the actual variation in the
+   * indexed data instead of using a generic 0–200 scale.
+   *
+   * 100 is always included because it is the base-year
+   * reference point.
+   */
+
+  const indexedYDomain = useMemo(() => {
+    const values: number[] = [];
+
+    indexedChartData.forEach((row) => {
+      series.forEach((seriesKey) => {
+        const value = row[seriesKey];
+
+        if (
+          typeof value === "number" &&
+          Number.isFinite(value)
+        ) {
+          values.push(value);
+        }
+      });
+    });
+
+    /*
+     * No valid indexed values.
+     */
+    if (values.length === 0) {
+      return [0, 200] as [number, number];
+    }
+
+    const actualMin = Math.min(...values);
+    const actualMax = Math.max(...values);
+
+    /*
+     * Always include 100.
+     */
+    const minValue = Math.min(actualMin, 100);
+    const maxValue = Math.max(actualMax, 100);
+
+    const range = maxValue - minValue;
+
+    /*
+     * Add 10% padding around the actual variation.
+     *
+     * Minimum padding of 2 index points prevents the
+     * chart from becoming too compressed when the data
+     * barely move.
+     */
+    const padding = Math.max(range * 0.10, 2);
+
+    return [
+      Math.floor(minValue - padding),
+      Math.ceil(maxValue + padding),
+    ] as [number, number];
+  }, [indexedChartData, series]);
 
   /*
    * ---------------------------------------------------------
@@ -493,6 +687,22 @@ function Trends() {
     }).format(value);
   }
 
+  function formatIndexedValue(value: number | null) {
+    if (value === null || !Number.isFinite(value)) {
+      return "—";
+    }
+
+    return `${new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 2,
+    }).format(value)}`;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * DOWNLOAD MAIN CHART
+   * ---------------------------------------------------------
+   */
+
   async function downloadChart() {
     if (!chartRef.current) return;
 
@@ -518,6 +728,45 @@ function Trends() {
     }
   }
 
+  /*
+   * ---------------------------------------------------------
+   * DOWNLOAD INDEXED CHART
+   * ---------------------------------------------------------
+   */
+
+  async function downloadIndexedChart() {
+    if (!indexedChartRef.current) return;
+
+    try {
+      setDownloadingIndexed(true);
+
+      const image = await toPng(indexedChartRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
+
+      const link = document.createElement("a");
+
+      link.download = `worlddata-indexed-${baseYear}.png`;
+      link.href = image;
+
+      link.click();
+    } catch (err) {
+      console.error(
+        "Could not download indexed chart:",
+        err
+      );
+    } finally {
+      setDownloadingIndexed(false);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * INDICATOR NAME
+   * ---------------------------------------------------------
+   */
 
   function getIndicatorName(code: string) {
     return (
@@ -590,6 +839,7 @@ function Trends() {
             setCountriesOpen(open);
             setIndicatorsOpen(false);
             setYearOpen(false);
+            setBaseYearOpen(false);
           }}
           onChange={setSelectedCountries}
         />
@@ -606,6 +856,7 @@ function Trends() {
             setIndicatorsOpen(open);
             setCountriesOpen(false);
             setYearOpen(false);
+            setBaseYearOpen(false);
           }}
           onChange={setSelectedIndicators}
           formatOption={getIndicatorName}
@@ -623,6 +874,7 @@ function Trends() {
               setYearOpen((open) => !open);
               setCountriesOpen(false);
               setIndicatorsOpen(false);
+              setBaseYearOpen(false);
             }}
           >
             <span>
@@ -643,6 +895,7 @@ function Trends() {
             <div className="year-dropdown">
               <div className="year-dropdown-title">
                 <span>YEAR RANGE</span>
+
                 <small>
                   Select the period to display
                 </small>
@@ -716,6 +969,10 @@ function Trends() {
         </div>
       ) : (
         <div className="trend-card">
+          {/* =================================================
+              MAIN CHART
+              ================================================= */}
+
           <div className="trend-card-header">
             <div>
               <div className="eyebrow">
@@ -752,18 +1009,17 @@ function Trends() {
                 {downloading
                   ? "Exporting..."
                   : "Download PNG"}
-                </button>
+              </button>
 
-                <span className="trend-period">
-                  {startYear} — {endYear}
-                </span>
-              </div>
+              <span className="trend-period">
+                {startYear} — {endYear}
+              </span>
+            </div>
           </div>
 
-          <div 
+          <div
             className="chart-container"
             ref={chartRef}
-          
           >
             {loadingData ? (
               <div className="trend-loading">
@@ -771,6 +1027,7 @@ function Trends() {
                   className="spin"
                   size={18}
                 />
+
                 <span>
                   Loading time series...
                 </span>
@@ -783,12 +1040,10 @@ function Trends() {
                 </span>
               </div>
             ) : (
-          
               <ResponsiveContainer
                 width="100%"
                 height={420}
               >
-                
                 <LineChart
                   data={chartData}
                   margin={{
@@ -855,7 +1110,9 @@ function Trends() {
                     }}
                     onClick={(payload: any) => {
                       const key = String(
-                        payload?.dataKey ?? payload?.value ?? ""
+                        payload?.dataKey ??
+                          payload?.value ??
+                          ""
                       );
 
                       if (!key) return;
@@ -883,7 +1140,7 @@ function Trends() {
                       stroke={getChartColor(index)}
                       strokeWidth={2.5}
                       dot={false}
-                      activeDot={{r: 5}}    
+                      activeDot={{ r: 5 }}
                       connectNulls
                       isAnimationActive={false}
                       hide={hiddenSeries[seriesKey]}
@@ -892,6 +1149,277 @@ function Trends() {
                 </LineChart>
               </ResponsiveContainer>
             )}
+          </div>
+
+          {/* =================================================
+              INDEXED CHART
+              ================================================= */}
+
+          <div className="indexed-chart-section">
+            <div className="trend-card-header indexed-chart-header">
+              <div>
+                <div className="eyebrow">
+                  INDEXED CHANGE
+                </div>
+
+                <h2>
+                  Relative change from base year
+                </h2>
+
+                <p>
+                  Base year = 100 · Compare changes
+                  across countries and indicators
+                </p>
+              </div>
+
+              <div className="trend-chart-actions">
+                <div className="base-year-control">
+                  <div className="control-label">
+                    <span>BASE YEAR</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="selection-control base-year-selection-control"
+                    onClick={() => {
+                      setBaseYearOpen(
+                        (open) => !open
+                      );
+                      setCountriesOpen(false);
+                      setIndicatorsOpen(false);
+                      setYearOpen(false);
+                    }}
+                  >
+                    <span>{baseYear}</span>
+
+                    <ChevronDown
+                      size={15}
+                      className={
+                        baseYearOpen
+                          ? "selector-chevron open"
+                          : "selector-chevron"
+                      }
+                    />
+                  </button>
+
+                  {baseYearOpen && (
+                    <div className="base-year-dropdown">
+                      <div className="year-dropdown-title">
+                        <span>BASE YEAR</span>
+
+                        <small>
+                          All series equal 100
+                          in this year
+                        </small>
+                      </div>
+
+                      <div className="base-year-list">
+                        {availableBaseYears.map(
+                          (year) => (
+                            <button
+                              key={year}
+                              type="button"
+                              className={
+                                year === baseYear
+                                  ? "base-year-option selected"
+                                  : "base-year-option"
+                              }
+                              onMouseDown={(event) => {
+                                event.preventDefault();
+                                setBaseYear(year);
+                                setBaseYearOpen(false);
+                              }}
+                            >
+                              <span>{year}</span>
+
+                              {year === baseYear && (
+                                <Check size={15} />
+                              )}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="chart-download-button"
+                  onClick={downloadIndexedChart}
+                  disabled={
+                    downloadingIndexed
+                  }
+                >
+                  {downloadingIndexed
+                    ? "Exporting..."
+                    : "Download PNG"}
+                </button>
+
+                <span className="trend-period">
+                  {startYear} — {endYear}
+                </span>
+              </div>
+            </div>
+
+            <div
+              className="chart-container indexed-chart-container"
+              ref={indexedChartRef}
+            >
+              {loadingData ? (
+                <div className="trend-loading">
+                  <Loader2
+                    className="spin"
+                    size={18}
+                  />
+
+                  <span>
+                    Loading indexed series...
+                  </span>
+                </div>
+              ) : indexedChartData.length === 0 ? (
+                <div className="trend-loading">
+                  <span>
+                    No observations available for
+                    this selection.
+                  </span>
+                </div>
+              ) : (
+                <ResponsiveContainer
+                  width="100%"
+                  height={420}
+                >
+                  <LineChart
+                    data={indexedChartData}
+                    margin={{
+                      top: 15,
+                      right: 30,
+                      left: 10,
+                      bottom: 10,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#e5e7eb"
+                    />
+
+                    <XAxis
+                      dataKey="year"
+                      tick={{
+                        fontSize: 11,
+                        fill: "#64748b",
+                      }}
+                      tickLine={false}
+                      axisLine={{
+                        stroke: "#e5e7eb",
+                      }}
+                    />
+
+                    <YAxis
+                      domain={indexedYDomain}
+                      tick={{
+                        fontSize: 11,
+                        fill: "#64748b",
+                      }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) =>
+                        `${Number(value).toFixed(0)}`
+                      }
+                    />
+
+                    <ReferenceLine
+                      y={100}
+                      stroke="#94a3b8"
+                      strokeDasharray="5 5"
+                      label={{
+                        value: "Base = 100",
+                        position: "insideTopRight",
+                        fontSize: 10,
+                        fill: "#64748b",
+                      }}
+                    />
+
+                    <Tooltip
+                      formatter={(value) =>
+                        formatIndexedValue(
+                          typeof value === "number"
+                            ? value
+                            : Number(value)
+                        )
+                      }
+                      labelFormatter={(label) =>
+                        `Year: ${label}`
+                      }
+                      contentStyle={{
+                        borderRadius: 10,
+                        border:
+                          "1px solid #e2e8f0",
+                        boxShadow:
+                          "0 10px 30px rgba(15,23,42,0.12)",
+                        fontSize: 12,
+                      }}
+                    />
+
+                    <Legend
+                      wrapperStyle={{
+                        paddingTop: 10,
+                        fontSize: 11,
+                        cursor: "pointer",
+                      }}
+                      onClick={(payload: any) => {
+                        const key = String(
+                          payload?.dataKey ??
+                            payload?.value ??
+                            ""
+                        );
+
+                        if (!key) return;
+
+                        setHiddenIndexedSeries(
+                          (current) => ({
+                            ...current,
+                            [key]: !current[key],
+                          })
+                        );
+                      }}
+                    />
+
+                    <Brush
+                      dataKey="year"
+                      height={24}
+                      stroke="#94a3b8"
+                      travellerWidth={8}
+                    />
+
+                    {series.map(
+                      (seriesKey, index) => (
+                        <Line
+                          key={seriesKey}
+                          type="monotone"
+                          dataKey={seriesKey}
+                          name={seriesKey}
+                          stroke={getChartColor(
+                            index
+                          )}
+                          strokeWidth={2.5}
+                          dot={false}
+                          activeDot={{ r: 5 }}
+                          connectNulls
+                          isAnimationActive={false}
+                          hide={
+                            hiddenIndexedSeries[
+                              seriesKey
+                            ]
+                          }
+                        />
+                      )
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -981,19 +1509,21 @@ function MultiSelector({
             </span>
           ) : (
             <div className="selected-tags">
-              {selected.slice(0, 2).map((item) => (
-                <span
-                  key={item}
-                  className="selection-tag"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeOption(item);
-                  }}
-                >
-                  {item}
-                  <X size={12} />
-                </span>
-              ))}
+              {selected
+                .slice(0, 2)
+                .map((item) => (
+                  <span
+                    key={item}
+                    className="selection-tag"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeOption(item);
+                    }}
+                  >
+                    {item}
+                    <X size={12} />
+                  </span>
+                ))}
 
               {selected.length > 2 && (
                 <span className="selection-more">

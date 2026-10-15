@@ -159,8 +159,11 @@ function App() {
   const [search, setSearch] =
     useState<string>("");
 
-  const [sidebarOpen, setSidebarOpen] =
+  const [sidebarCollapsed, setSidebarCollapsed] =
     useState<boolean>(false);
+
+const [mobileSidebarOpen, setMobileSidebarOpen] =
+  useState<boolean>(false);
 
   const [loading, setLoading] =
     useState<boolean>(true);
@@ -264,7 +267,7 @@ function App() {
 
   function navigate(page: string) {
     setActivePage(page);
-    setSidebarOpen(false);
+    setMobileSidebarOpen(false);
   }
 
   function renderNavItem(item: NavItem) {
@@ -530,10 +533,22 @@ function App() {
 
       <aside
         className={`sidebar ${
-          sidebarOpen ? "open" : ""
-        }`}
+          sidebarCollapsed ? "collapsed" : ""
+        } ${
+          mobileSidebarOpen ? "mobile-open" : ""
+       }`}
       >
         <div className="brand">
+          <div className="brand-mark">
+            <div className="brand-mark-grid">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+
+        <div className="brand-copy">
           <div className="brand-title">
             WorldData
           </div>
@@ -543,95 +558,106 @@ function App() {
           </div>
         </div>
 
-        <nav className="nav">
-          {/* EXPLORE */}
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={() =>
+            setSidebarCollapsed(
+              !sidebarCollapsed
+            )
+          }
+          aria-label={
+            sidebarCollapsed
+              ? "Expand sidebar"
+              : "Collapse sidebar"
+          }
+        >
+          <Menu size={17} />
+        </button>
+      </div>
 
-          <div className="nav-section">
-            <div className="nav-label">
-              Explore
-            </div>
+      <nav className="nav">
 
-            {exploreItems.map(
-              renderNavItem
-            )}
+        <div className="nav-section">
+          <div className="nav-label">
+            Explore
           </div>
 
-          {/* STATISTICS */}
-
-          <div className="nav-section">
-            <div className="nav-label">
-              Statistics
-            </div>
-
-            {statisticsItems.map(
-              renderNavItem
-            )}
-          </div>
-
-          {/* ECONOMETRICS */}
-
-          <div className="nav-section">
-            <div className="nav-label">
-              Econometrics
-            </div>
-
-            {econometricsItems.map(
-              renderNavItem
-            )}
-          </div>
-
-          {/* TOOLS */}
-
-          <div className="nav-section">
-            <div className="nav-label">
-              Tools
-            </div>
-
-            {renderNavItem({
-              label: "Salary & Tax",
-              icon: Calculator,
-            })}
-
-            {renderNavItem({
-              label: "Growth Calculator",
-              icon: TrendingUp,
-            })}
-          </div>
-
-          {/* DATABASE */}
-
-          <div className="nav-section">
-            <div className="nav-label">
-              Database
-            </div>
-
-            {renderNavItem({
-              label: "Indicators",
-              icon: Database,
-            })}
-
-            {renderNavItem({
-              label: "Countries",
-              icon: Globe2,
-            })}
-          </div>
-        </nav>
-
-        <div className="sidebar-footer">
-          WorldData
+          {exploreItems.map(
+            renderNavItem
+          )}
         </div>
-      </aside>
+
+        <div className="nav-section">
+          <div className="nav-label">
+            Statistics
+          </div>
+
+          {statisticsItems.map(
+            renderNavItem
+          )}
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">
+            Econometrics
+          </div>
+
+          {econometricsItems.map(
+            renderNavItem
+          )}
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">
+            Tools
+          </div>
+
+          {renderNavItem({
+            label: "Salary & Tax",
+            icon: Calculator,
+          })}
+
+          {renderNavItem({
+            label: "Growth Calculator",
+            icon: TrendingUp,
+          })}
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">
+            Database
+          </div>
+
+          {renderNavItem({
+            label: "Indicators",
+            icon: Database,
+          })}
+
+          {renderNavItem({
+            label: "Countries",
+            icon: Globe2,
+          })}
+        </div>
+
+      </nav>
+
+      <div className="sidebar-footer">
+        <span>WORLD DATA</span>
+        <span>v1.0</span>
+      </div>
+    </aside>
 
       {/* =================================================
           MOBILE OVERLAY
       ================================================= */}
 
-      {sidebarOpen && (
+      {mobileSidebarOpen && (
         <button
           type="button"
           className="sidebar-overlay"
           onClick={() =>
-            setSidebarOpen(false)
+            setMobileSidebarOpen(false)
           }
           aria-label="Close navigation"
         />
@@ -649,7 +675,7 @@ function App() {
             type="button"
             className="mobile-menu-button"
             onClick={() =>
-              setSidebarOpen(true)
+              setMobileSidebarOpen(true)
             }
             aria-label="Open navigation"
           >

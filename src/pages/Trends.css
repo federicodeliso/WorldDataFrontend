@@ -485,12 +485,10 @@
 
   white-space: nowrap;
   text-overflow: ellipsis;
-
 }
 
 .year-selection-control .selector-chevron {
   flex-shrink: 0;
-
 }
 
 .year-dropdown {
@@ -735,6 +733,190 @@
 }
 
 /* =========================================================
+   INDEXED CHART
+   ========================================================= */
+
+.indexed-chart-section {
+  position: relative;
+
+  margin-top: 8px;
+
+  border-top: 1px solid var(--border);
+}
+
+.indexed-chart-header {
+  padding-top: 30px;
+  padding-bottom: 10px;
+}
+
+.indexed-chart-container {
+  padding-top: 8px;
+}
+
+/* =========================================================
+   BASE YEAR CONTROL
+   ========================================================= */
+
+.base-year-control {
+  position: relative;
+
+  flex-shrink: 0;
+
+  width: 110px;
+}
+
+.base-year-control .control-label {
+  height: 15px;
+
+  margin-bottom: 5px;
+}
+
+.base-year-control .control-label span {
+  font-size: 9px;
+}
+
+.base-year-selection-control {
+  width: 110px;
+  min-width: 110px;
+  height: 32px;
+
+  padding: 0 9px;
+
+  font-size: 11px;
+}
+
+.base-year-selection-control > span:first-child {
+  flex: 1;
+
+  text-align: left;
+}
+
+.base-year-dropdown {
+  position: absolute;
+  z-index: 99999;
+
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+
+  width: 190px;
+  max-height: 300px;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d9e0e8;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.18),
+    0 6px 16px rgba(15, 23, 42, 0.07);
+}
+
+.base-year-list {
+  max-height: 205px;
+
+  overflow-y: auto;
+
+  padding: 5px;
+
+  background: #ffffff;
+}
+
+.base-year-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.base-year-list::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+
+  background: #cbd5e1;
+}
+
+.base-year-option {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 8px 10px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.base-year-option:hover {
+  background: #f5f7fa;
+}
+
+.base-year-option.selected {
+  background: #f1f5f9;
+}
+
+.base-year-option svg {
+  color: var(--text);
+
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   CHART ACTIONS
+   ========================================================= */
+
+.trend-chart-actions {
+  display: flex;
+  align-items: flex-end;
+
+  gap: 9px;
+}
+
+.chart-download-button {
+  height: 32px;
+
+  padding: 0 11px;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.chart-download-button:hover {
+  background: var(--background);
+  border-color: #b7c0cb;
+}
+
+.chart-download-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* =========================================================
    LOADING
    ========================================================= */
 
@@ -843,47 +1025,8 @@
 }
 
 /* =========================================================
-   RESPONSIVE
+   FIXED YEAR FILTER WIDTH
    ========================================================= */
-
-@media (max-width: 1050px) {
-  .trend-controls {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .year-filter {
-    grid-column: 1 / -1;
-    max-width: 280px;
-  }
-}
-
-@media (max-width: 700px) {
-  .trends-heading h1 {
-    font-size: 32px;
-  }
-
-  .trend-controls {
-    grid-template-columns: 1fr;
-  }
-
-  .year-filter {
-    grid-column: auto;
-    max-width: none;
-  }
-
-  .trend-card-header {
-    flex-direction: column;
-
-    padding: 22px;
-  }
-
-  .chart-container {
-    height: 370px;
-    min-height: 370px;
-
-    padding: 10px 5px 0;
-  }
-}
 
 .year-filter {
   width: 200px !important;
@@ -898,44 +1041,100 @@
 }
 
 /* =========================================================
-   CHART ACTIONS
+   RESPONSIVE
    ========================================================= */
 
-.trend-chart-actions {
-  display: flex;
-  align-items: center;
-  gap: 9px;
+@media (max-width: 1050px) {
+  .trend-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .year-filter {
+    grid-column: 1 / -1;
+
+    width: 200px !important;
+    max-width: 200px !important;
+  }
 }
 
-.chart-download-button {
-  height: 32px;
+@media (max-width: 700px) {
+  .trends-heading h1 {
+    font-size: 32px;
+  }
 
-  padding: 0 11px;
+  .trend-controls {
+    grid-template-columns: 1fr;
+  }
 
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  .year-filter {
+    grid-column: auto;
 
-  background: var(--surface);
-  color: var(--text);
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
 
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 650;
+  .year-filter .selection-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
 
-  cursor: pointer;
+  .trend-card-header {
+    flex-direction: column;
 
-  transition:
-    background 0.12s ease,
-    border-color 0.12s ease,
-    opacity 0.12s ease;
+    padding: 22px;
+  }
+
+  .trend-chart-actions {
+    width: 100%;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+  }
+
+  .indexed-chart-header {
+    padding-top: 22px;
+  }
+
+  .base-year-control {
+    width: 110px;
+  }
+
+  .base-year-dropdown {
+    right: auto;
+    left: 0;
+  }
+
+  .chart-container {
+    height: 370px;
+    min-height: 370px;
+
+    padding: 10px 5px 0;
+  }
 }
 
-.chart-download-button:hover {
-  background: var(--background);
-  border-color: #b7c0cb;
-}
+@media (max-width: 480px) {
+  .trend-chart-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
-.chart-download-button:disabled {
-  opacity: 0.5;
-  cursor: default;
+  .base-year-control {
+    width: 100%;
+  }
+
+  .base-year-selection-control {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .base-year-dropdown {
+    width: 100%;
+  }
+
+  .trend-period {
+    width: fit-content;
+  }
 }
