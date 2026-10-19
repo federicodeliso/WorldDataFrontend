@@ -1110,40 +1110,6 @@ export default function Regression() {
 
   /*
    * ==========================================================
-   * SELECTED INDICATOR METADATA
-   * ==========================================================
-   */
-
-  const selectedXIndicator =
-    useMemo(
-      () =>
-        indicators.find(
-          (indicator) =>
-            indicator.code ===
-            xIndicator
-        ),
-      [
-        indicators,
-        xIndicator,
-      ]
-    );
-
-  const selectedYIndicator =
-    useMemo(
-      () =>
-        indicators.find(
-          (indicator) =>
-            indicator.code ===
-            yIndicator
-        ),
-      [
-        indicators,
-        yIndicator,
-      ]
-    );
-
-  /*
-   * ==========================================================
    * CHART DATA
    * ==========================================================
    */
