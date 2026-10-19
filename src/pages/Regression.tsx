@@ -5,7 +5,6 @@ import {
   Line,
   ResponsiveContainer,
   Scatter,
-  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
