@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import "./TimeSeries.css";
 
-const API = "http://127.0.0.1:8000";
+const API = "https:https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   country_id?: number;
