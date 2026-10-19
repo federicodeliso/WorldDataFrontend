@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import "./Composition.css";
 
-const API = "https://worlddata-api.onrender.com";
+const API = "https:https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   name?: string;
