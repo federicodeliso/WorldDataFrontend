@@ -22,7 +22,7 @@ import {
 import html2canvas from "html2canvas";
 import "./Ranking.css";
 
-const API = "http://127.0.0.1:8000";
+const API = "https:https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   name?: string;
