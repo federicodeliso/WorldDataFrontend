@@ -13,7 +13,7 @@ import {
 import { Loader2 } from "lucide-react";
 import "./Regression.css";
 
-const API = "https:https://worlddataapi-kf6d.onrender.com";
+const API = "https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   name?: string;
