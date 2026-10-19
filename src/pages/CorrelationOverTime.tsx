@@ -71,7 +71,7 @@ type SpearmanResult = {
   n: number;
 };
 
-const API_BASE = "http://127.0.0.1:8000";
+const API = "https://worlddataapi-kf6d.onrender.com";
 
 function logGamma(z: number): number {
   const coefficients = [
