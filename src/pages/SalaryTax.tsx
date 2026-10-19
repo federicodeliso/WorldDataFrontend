@@ -1694,14 +1694,6 @@ export default function SalaryTax() {
     hasEmployeePrivatePension ||
     hasEmployerPrivatePension;
 
-  const employerContributionAmount =
-    employerSocialAmount +
-    employerPrivatePensionAmount;
-
-  const employeeContributionAmount =
-    employeeSocialAmount +
-    employeePrivatePensionAmount;
-
   const grossBurdenRates = calculation
     ? {
         employerSocial:
