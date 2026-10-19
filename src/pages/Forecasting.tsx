@@ -21,7 +21,7 @@ import {
 
 import "./Forecasting.css";
 
-const API = "https:https://worlddataapi-kf6d.onrender.com";
+const API = "https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   country_id?: number;
