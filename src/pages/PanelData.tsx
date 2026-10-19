@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./PanelData.css";
 
-const API = "https://worlddataapi-kf6d.onrender.com";
+const API_BASE = "https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   name?: string;
