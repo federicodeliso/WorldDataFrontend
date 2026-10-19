@@ -16,7 +16,7 @@ import {
 import countriesTopology from "world-atlas/countries-110m.json";
 import "./Map.css";
 
-const API = "http://127.0.0.1:8000";
+const API = "https:https://worlddataapi-kf6d.onrender.com";
 
 type Country = {
   name?: string;
