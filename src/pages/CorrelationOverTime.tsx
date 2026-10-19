@@ -1263,17 +1263,7 @@ function CorrelationOverTime() {
     item: Indicator
   ) => item.name ?? item.code;
 
-  const selectedXIndicator =
-    indicators.find(
-      (item) =>
-        item.code === xIndicator
-    );
 
-  const selectedYIndicator =
-    indicators.find(
-      (item) =>
-        item.code === yIndicator
-    );
 
   const downloadChart = async () => {
     if (!chartRef.current) {
