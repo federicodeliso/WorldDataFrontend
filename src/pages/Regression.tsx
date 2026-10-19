@@ -671,6 +671,14 @@ export default function Regression() {
   const [yIndicator, setYIndicator] =
     useState("");
 
+  const selectedYIndicator = useMemo(
+    () =>
+      indicators.find(
+        (indicator) => indicator.code === yIndicator
+      ),
+    [indicators, yIndicator]
+  );
+
   const [startYear, setStartYear] =
     useState(2000);
 
