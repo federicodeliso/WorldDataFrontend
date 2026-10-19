@@ -193,7 +193,7 @@ function naiveForecast(values: number[]): {
   fitted: (number | null)[];
   nextValue: number;
 } {
-  const fitted: (number | null)[] = values.map((value, index) =>
+  const fitted: (number | null)[] = values.map((_, index) =>
     index === 0 ? null : values[index - 1]
   );
 
