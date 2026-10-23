@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@radix-ui/react-popover": "^1.1.23",
+    "@sqlite.org/sqlite-wasm": "^3.54.1-build1",
     "cmdk": "^1.1.1",
     "d3-geo": "^3.1.1",
     "html-to-image": "^1.11.13",
