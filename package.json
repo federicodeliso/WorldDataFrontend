@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor-community/sqlite": "^8.1.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@radix-ui/react-popover": "^1.1.23",
     "@sqlite.org/sqlite-wasm": "^3.54.1-build1",
     "cmdk": "^1.1.1",
