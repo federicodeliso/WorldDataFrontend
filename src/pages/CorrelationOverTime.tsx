@@ -71,7 +71,7 @@ type SpearmanResult = {
   n: number;
 };
 
-const API_BASE = "https://worlddataapi-kf6d.onrender.com";
+const API = "http://127.0.0.1:8000";
 
 function logGamma(z: number): number {
   const coefficients = [
@@ -773,10 +773,10 @@ function CorrelationOverTime() {
           indicatorsResponse,
         ] = await Promise.all([
           fetch(
-            `${API_BASE}/countries?limit=500`
+            `${API}/countries?limit=500`
           ),
           fetch(
-            `${API_BASE}/indicators?limit=2000`
+            `${API}/indicators?limit=2000`
           ),
         ]);
 
@@ -931,14 +931,14 @@ function CorrelationOverTime() {
           yResponse,
         ] = await Promise.allSettled([
           fetch(
-            `${API_BASE}/data/${encodeURIComponent(
+            `${API}/data/${encodeURIComponent(
               country
             )}/${encodeURIComponent(
               xIndicator
             )}`
           ),
           fetch(
-            `${API_BASE}/data/${encodeURIComponent(
+            `${API}/data/${encodeURIComponent(
               country
             )}/${encodeURIComponent(
               yIndicator

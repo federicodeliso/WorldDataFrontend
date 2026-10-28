@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./PanelData.css";
 
-const API_BASE = "https://worlddataapi-kf6d.onrender.com";
+const API = "http://127.0.0.1:8000";
 
 type Country = {
   name?: string;
@@ -337,10 +337,10 @@ export default function PanelData() {
           indicatorsResponse,
         ] = await Promise.all([
           fetch(
-            `${API_BASE}/countries?limit=500`
+            `${API}/countries?limit=500`
           ),
           fetch(
-            `${API_BASE}/indicators?limit=2000`
+            `${API}/indicators?limit=2000`
           ),
         ]);
 
@@ -537,7 +537,7 @@ export default function PanelData() {
       setRunning(true);
 
       const response = await fetch(
-        `${API_BASE}/panel/regression`,
+        `${API}/panel/regression`,
         {
           method: "POST",
           headers: {
