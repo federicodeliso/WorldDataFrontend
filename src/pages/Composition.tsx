@@ -63,19 +63,23 @@ type SelectorProps = {
   onSearch: (value: string) => void;
   onChange: (value: string[]) => void;
   formatOption?: (value: string) => string;
+  optionColor?: (value: string) => string;
 };
 
 type CompositionTooltipProps = {
   active?: boolean;
   payload?: Array<{
+    dataKey?: string | number;
+    name?: string | number;
+    value?: number | string;
+    color?: string;
     payload?: ChartRow;
   }>;
   label?: string | number;
   country: string;
-  selectedIndicators: string[];
-  hiddenIndicators: Record<string, boolean>;
   getIndicatorName: (code: string) => string;
   formatValue: (value: number) => string;
+  hoveredIndicator?: string | null;
 };
 
 const COMPOSITION_COLORS = [
@@ -101,55 +105,63 @@ function CompositionTooltip({
   payload,
   label,
   country,
-  selectedIndicators,
-  hiddenIndicators,
   getIndicatorName,
   formatValue,
+  hoveredIndicator,
 }: CompositionTooltipProps) {
-  if (
-    !active ||
-    !payload ||
-    payload.length === 0 ||
-    !payload[0]?.payload
-  ) {
+  if (!active || !payload || payload.length === 0) {
     return null;
   }
 
-  const row = payload[0].payload;
+  // BarChart uses axis-mode tooltips even when shared={false}; use the
+  // series whose actual shape fired onMouseEnter instead of payload[0].
+  const item = hoveredIndicator
+    ? payload.find(
+        (entry) => String(entry.dataKey ?? entry.name ?? "") === hoveredIndicator
+      )
+    : payload.length === 1
+      ? payload[0]
+      : undefined;
 
-  const visibleIndicators = selectedIndicators.filter(
-    (indicator) => !hiddenIndicators[indicator]
-  );
+  if (!item) {
+    return null;
+  }
 
-  const total = visibleIndicators.reduce((sum, indicator) => {
-    const value = Number(row[indicator] ?? 0);
-    return sum + (Number.isFinite(value) ? value : 0);
-  }, 0);
+  const indicator = String(item.dataKey ?? item.name ?? "");
+  const numericValue = Number(item.value ?? 0);
+
+  if (!indicator || !Number.isFinite(numericValue)) {
+    return null;
+  }
 
   return (
     <div className="composition-tooltip">
       <strong>
         {country} · {label}
       </strong>
-
-      <div className="composition-tooltip-total">
-        <span>Total</span>
-        <strong>{formatValue(total)}</strong>
+      <div className="composition-tooltip-row">
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              display: "inline-block",
+              width: 9,
+              height: 9,
+              flex: "0 0 9px",
+              borderRadius: 2,
+              backgroundColor: item.color ?? "#64748b",
+            }}
+          />
+          {getIndicatorName(indicator)}
+        </span>
+        <strong>{formatValue(numericValue)}</strong>
       </div>
-
-      {visibleIndicators.map((indicator) => {
-        const value = Number(row[indicator] ?? 0);
-
-        return (
-          <div
-            key={indicator}
-            className="composition-tooltip-row"
-          >
-            <span>{getIndicatorName(indicator)}</span>
-            <strong>{formatValue(value)}</strong>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -163,6 +175,8 @@ function Composition() {
 
   const [selectedIndicators, setSelectedIndicators] =
     useState<string[]>([]);
+  const [hoveredIndicator, setHoveredIndicator] =
+    useState<string | null>(null);
 
   const [observations, setObservations] =
     useState<Observation[]>([]);
@@ -554,34 +568,11 @@ function Composition() {
             .includes(query)
         );
       })
-      .sort((a, b) => {
-        const aSelected =
-          selectedIndicators.includes(a);
-
-        const bSelected =
-          selectedIndicators.includes(b);
-
-        if (
-          aSelected &&
-          !bSelected
-        ) {
-          return -1;
-        }
-
-        if (
-          !aSelected &&
-          bSelected
-        ) {
-          return 1;
-        }
-
-        return a.localeCompare(b);
-      });
+      .sort((a, b) => a.localeCompare(b));
   }, [
     indicatorCodes,
     indicators,
     indicatorSearch,
-    selectedIndicators,
   ]);
 
   /*
@@ -853,14 +844,11 @@ function Composition() {
   function getColor(
     indicator: string
   ) {
-    const index =
-      selectedIndicators.indexOf(
-        indicator
-      );
+    const index = indicatorCodes.indexOf(indicator);
 
     return (
       COMPOSITION_COLORS[
-        index %
+        (index < 0 ? 0 : index) %
           COMPOSITION_COLORS.length
       ] ?? "#2563eb"
     );
@@ -869,6 +857,42 @@ function Composition() {
   /*
    * LEGEND TOGGLE
    */
+  function renderCompositionLegend({
+    payload = [],
+  }: any) {
+    return (
+      <div
+        className="composition-legend-scroll"
+        role="group"
+        aria-label="Chart indicators"
+      >
+        {payload.map((item: any) => {
+          const key = String(item.dataKey ?? item.value ?? "");
+          const hidden = hiddenIndicators[key] === true;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`composition-legend-item${hidden ? " is-hidden" : ""}`}
+              onClick={() => handleLegendClick(item)}
+              title={`${hidden ? "Show" : "Hide"} ${getIndicatorName(key)}`}
+              aria-pressed={!hidden}
+            >
+              <span
+                className="composition-legend-swatch"
+                style={{ backgroundColor: getColor(key) }}
+              />
+              <span className="composition-legend-label">
+                {getIndicatorName(key)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   function handleLegendClick(
     payload: any
   ) {
@@ -1039,6 +1063,7 @@ function Composition() {
           formatOption={
             getIndicatorName
           }
+          optionColor={getColor}
         />
 
         <div className="composition-year-control">
@@ -1294,6 +1319,7 @@ function Composition() {
                           />
 
                           <Tooltip
+                            shared={false}
                             content={(
                               props: any
                             ) => (
@@ -1310,41 +1336,28 @@ function Composition() {
                                 country={
                                   country
                                 }
-                                selectedIndicators={
-                                  selectedIndicators
-                                }
-                                hiddenIndicators={
-                                  hiddenIndicators
-                                }
                                 getIndicatorName={
                                   getIndicatorName
                                 }
                                 formatValue={
                                   formatValue
                                 }
+                                hoveredIndicator={
+                                  hoveredIndicator
+                                }
                               />
                             )}
                           />
 
                           <Legend
+                            verticalAlign="bottom"
+                            align="left"
+                            height={38}
+                            content={renderCompositionLegend}
                             wrapperStyle={{
-                              paddingTop: 12,
-                              fontSize: 10,
-                              cursor:
-                                "pointer",
+                              paddingTop: 8,
+                              overflow: "hidden",
                             }}
-                            formatter={(
-                              value
-                            ) =>
-                              getIndicatorName(
-                                String(
-                                  value
-                                )
-                              )
-                            }
-                            onClick={
-                              handleLegendClick
-                            }
                           />
 
                           {selectedIndicators.map(
@@ -1361,6 +1374,7 @@ function Composition() {
                                 name={
                                   indicator
                                 }
+                                onMouseEnter={() => setHoveredIndicator(indicator)}
                                 stackId="composition"
                                 fill={getColor(
                                   indicator
@@ -1443,6 +1457,7 @@ function Composition() {
                           />
 
                           <Tooltip
+                            shared={false}
                             content={(
                               props: any
                             ) => (
@@ -1459,41 +1474,28 @@ function Composition() {
                                 country={
                                   country
                                 }
-                                selectedIndicators={
-                                  selectedIndicators
-                                }
-                                hiddenIndicators={
-                                  hiddenIndicators
-                                }
                                 getIndicatorName={
                                   getIndicatorName
                                 }
                                 formatValue={
                                   formatValue
                                 }
+                                hoveredIndicator={
+                                  hoveredIndicator
+                                }
                               />
                             )}
                           />
 
                           <Legend
+                            verticalAlign="bottom"
+                            align="left"
+                            height={38}
+                            content={renderCompositionLegend}
                             wrapperStyle={{
-                              paddingTop: 12,
-                              fontSize: 10,
-                              cursor:
-                                "pointer",
+                              paddingTop: 8,
+                              overflow: "hidden",
                             }}
-                            formatter={(
-                              value
-                            ) =>
-                              getIndicatorName(
-                                String(
-                                  value
-                                )
-                              )
-                            }
-                            onClick={
-                              handleLegendClick
-                            }
                           />
 
                           {selectedIndicators.map(
@@ -1511,6 +1513,7 @@ function Composition() {
                                 name={
                                   indicator
                                 }
+                                onMouseEnter={() => setHoveredIndicator(indicator)}
                                 stackId="composition"
                                 stroke={getColor(
                                   indicator
@@ -1562,6 +1565,7 @@ function MultiSelector({
   onSearch,
   onChange,
   formatOption,
+  optionColor,
 }: SelectorProps) {
   function toggleOption(
     option: string
@@ -1728,10 +1732,21 @@ function MultiSelector({
                         )}
                       </div>
 
-                      {isSelected && (
-                        <Check
-                          size={15}
-                        />
+                      {optionColor ? (
+                        <span
+                          className={`composition-option-color${isSelected ? " selected" : ""}`}
+                          style={{
+                            borderColor: optionColor(option),
+                            backgroundColor: isSelected
+                              ? optionColor(option)
+                              : "transparent",
+                          }}
+                          aria-label={isSelected ? "Selected" : "Not selected"}
+                        >
+                          {isSelected && <Check size={10} strokeWidth={3} />}
+                        </span>
+                      ) : (
+                        isSelected && <Check size={15} />
                       )}
                     </button>
                   );

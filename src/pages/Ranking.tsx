@@ -3,8 +3,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
+  ReferenceLine,
   Tooltip,
   XAxis,
   YAxis,
@@ -51,15 +51,39 @@ type RankingRow = RankingDataRow & {
   rank: number;
 };
 
+// 30 visually distinct colors. Keep color assignment tied to the selected
+// indicator order so the selector, expanded names, chart, and table stay aligned.
 const INDICATOR_COLORS = [
-  "#2563eb",
-  "#16a34a",
-  "#f59e0b",
-  "#7c3aed",
-  "#0891b2",
-  "#db2777",
-  "#ea580c",
-  "#64748b",
+  "#2563eb", // blue
+  "#16a34a", // green
+  "#f59e0b", // amber
+  "#7c3aed", // violet
+  "#0891b2", // cyan
+  "#db2777", // pink
+  "#ea580c", // orange
+  "#64748b", // slate
+  "#dc2626", // red
+  "#0d9488", // teal
+  "#4f46e5", // indigo
+  "#84cc16", // lime
+  "#9333ea", // purple
+  "#ca8a04", // yellow-brown
+  "#0284c7", // sky
+  "#e11d48", // rose
+  "#15803d", // dark green
+  "#c2410c", // burnt orange
+  "#6d28d9", // deep violet
+  "#0f766e", // dark teal
+  "#a21caf", // fuchsia
+  "#475569", // blue gray
+  "#65a30d", // olive lime
+  "#b91c1c", // dark red
+  "#0369a1", // ocean blue
+  "#be185d", // dark pink
+  "#7c2d12", // brown
+  "#4338ca", // deep indigo
+  "#059669", // emerald
+  "#a16207", // ochre
 ];
 
 const OECD_FALLBACK = new Set([
@@ -239,6 +263,9 @@ function Ranking() {
     useState(true);
 
   const [rankingLoading, setRankingLoading] =
+    useState(false);
+
+  const [detailsOpen, setDetailsOpen] =
     useState(false);
 
   const [indicatorOpen, setIndicatorOpen] =
@@ -1540,24 +1567,49 @@ function Ranking() {
                   } more`}
             </h2>
 
-            <p>
-              {selectedIndicatorInfo
-                .map(
-                  (
-                    indicator
-                  ) =>
-                    indicator.name ??
-                    indicator.code
-                )
-                .join(
-                  " + "
-                )}{" "}
-              · {selectedYear}
-
-              {oecdOnly
-                ? " · OECD"
-                : ""}
+            <p className="ranking-subtitle">
+              {selectedIndicators.length} indicator
+              {selectedIndicators.length === 1 ? "" : "s"}
+              {" · "}{selectedYear}
+              {oecdOnly ? " · OECD only" : ""}
+              {" · "}
+              <button
+                type="button"
+                className="ranking-inline-toggle"
+                aria-expanded={detailsOpen}
+                onClick={() => setDetailsOpen((open) => !open)}
+              >
+                {detailsOpen ? "Hide indicator names" : "Show indicator names"}
+                <ChevronDown
+                  size={12}
+                  className={detailsOpen ? "ranking-chevron open" : "ranking-chevron"}
+                />
+              </button>
             </p>
+
+            {detailsOpen && (
+              <div className="ranking-indicator-details">
+                {selectedIndicators.map((indicatorCode) => {
+                  const indicator = indicators.find(
+                    (item) => item.code === indicatorCode,
+                  );
+                  const colorIndex = selectedIndicators.indexOf(indicatorCode);
+
+                  return (
+                    <div className="ranking-indicator-detail" key={indicatorCode}>
+                      <span
+                        className="ranking-legend-dot"
+                        style={{
+                          background:
+                            INDICATOR_COLORS[colorIndex % INDICATOR_COLORS.length],
+                        }}
+                      />
+                      <span>{indicator?.name ?? indicatorCode}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="ranking-card-actions">
@@ -1638,142 +1690,117 @@ function Ranking() {
                 </div>
               )}
 
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <BarChart
-                  data={chartData}
-                  margin={{
-                    top: 20,
-                    right: 35,
-                    left: 15,
-                    bottom: 80,
-                  }}
-                  barCategoryGap="18%"
+              <div className="ranking-chart-plot">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
                 >
-                  <CartesianGrid
-                    vertical={false}
-                    stroke="#e8ecf1"
-                  />
-
-                  <XAxis
-                    type="category"
-                    dataKey="country"
-                    interval={0}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{
-                      fontSize: 10,
-                      fill: "#334155",
+                  <BarChart
+                    data={chartData}
+                    stackOffset="sign"
+                    margin={{
+                      top: 12,
+                      right: 20,
+                      left: 8,
+                      bottom: 72,
                     }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
+                    barCategoryGap="18%"
+                  >
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="#e8ecf1"
+                    />
 
-                  <YAxis
-                    type="number"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{
-                      fontSize: 10,
-                      fill: "#64748b",
-                    }}
-                    tickFormatter={
-                      formatValue
-                    }
-                  />
+                    {/* Zero baseline: negative values extend below it. */}
+                    <ReferenceLine
+                      y={0}
+                      stroke="#64748b"
+                      strokeWidth={1.2}
+                    />
 
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: 10,
-                      border:
-                        "1px solid #e2e8f0",
-                      boxShadow:
-                        "0 10px 30px rgba(15,23,42,0.12)",
-                      fontSize: 12,
-                    }}
-                    labelStyle={{
-                      color: "#0f172a",
-                      fontWeight: 700,
-                      marginBottom: 5,
-                    }}
-                    formatter={(
-                      value,
-                      name
-                    ) => {
-                      const numericValue =
-                        Number(
-                          value
-                        );
+                    <XAxis
+                      type="category"
+                      dataKey="country"
+                      interval={0}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{
+                        fontSize: 10,
+                        fill: "#334155",
+                      }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={72}
+                    />
 
-                      return [
-                        formatValue(
-                          numericValue
-                        ),
-                        String(
-                          name
-                        ),
-                      ];
-                    }}
-                    labelFormatter={(
-                      label
-                    ) =>
-                      String(
-                        label
-                      )
-                    }
-                  />
+                    <YAxis
+                      type="number"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{
+                        fontSize: 10,
+                        fill: "#64748b",
+                      }}
+                      tickFormatter={formatValue}
+                      width={58}
+                    />
 
-                  <Legend />
+                    <Tooltip
+                      shared={false}
+                      wrapperStyle={{
+                        maxHeight: 280,
+                        maxWidth: 340,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        zIndex: 20,
+                      }}
+                      contentStyle={{
+                        borderRadius: 10,
+                        border: "1px solid #e2e8f0",
+                        boxShadow: "0 10px 30px rgba(15,23,42,0.12)",
+                        fontSize: 11,
+                        padding: "9px 11px",
+                        background: "rgba(255,255,255,0.98)",
+                      }}
+                      itemStyle={{
+                        paddingTop: 2,
+                        paddingBottom: 2,
+                        overflowWrap: "anywhere",
+                      }}
+                      labelStyle={{
+                        color: "#0f172a",
+                        fontWeight: 700,
+                        marginBottom: 5,
+                      }}
+                      formatter={(value, name) => [
+                        formatValue(Number(value)),
+                        String(name),
+                      ]}
+                      labelFormatter={(label) => String(label)}
+                    />
 
-                  {selectedIndicators.map(
-                    (
-                      indicatorCode,
-                      index
-                    ) => (
+                    {selectedIndicators.map((indicatorCode, index) => (
                       <Bar
-                        key={
-                          indicatorCode
-                        }
-                        dataKey={
-                          indicatorCode
-                        }
-                        name={
-                          indicatorCode
-                        }
+                        key={indicatorCode}
+                        dataKey={indicatorCode}
+                        name={indicatorCode}
                         stackId="ranking"
                         fill={
                           INDICATOR_COLORS[
-                            index %
-                              INDICATOR_COLORS.length
+                            index % INDICATOR_COLORS.length
                           ]
                         }
                         radius={
-                          index ===
-                          selectedIndicators.length - 1
-                            ? [
-                                4,
-                                4,
-                                0,
-                                0,
-                              ]
-                            : [
-                                0,
-                                0,
-                                0,
-                                0,
-                              ]
+                          index === selectedIndicators.length - 1
+                            ? [4, 4, 0, 0]
+                            : [0, 0, 0, 0]
                         }
-                        isAnimationActive={
-                          false
-                        }
+                        isAnimationActive={false}
                       />
-                    )
-                  )}
-                </BarChart>
-              </ResponsiveContainer>
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
         </div>
@@ -1791,7 +1818,7 @@ function Ranking() {
                 className="ranking-table-head"
                 style={{
                   gridTemplateColumns:
-                    `60px 1fr repeat(${selectedIndicators.length}, 140px) 150px`,
+                    `60px minmax(160px, 220px) repeat(${selectedIndicators.length}, 140px) 150px`,
                 }}
               >
                 <span>#</span>
@@ -1832,7 +1859,7 @@ function Ranking() {
                     }
                     style={{
                       gridTemplateColumns:
-                        `60px 1fr repeat(${selectedIndicators.length}, 140px) 150px`,
+                        `60px minmax(160px, 220px) repeat(${selectedIndicators.length}, 140px) 150px`,
                     }}
                     key={
                       row.country

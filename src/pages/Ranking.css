@@ -962,55 +962,31 @@
 
 }
 
+
 .ranking-card-header {
-
   display: flex;
-
-  align-items: flex-start;
-
+  align-items: center;
   justify-content: space-between;
-
-  gap: 20px;
-
-  padding: 16px 22px 11px;
-
+  gap: 14px;
+  padding: 12px 18px 6px;
 }
 
 .ranking-card-header h2 {
-
-  margin: 4px 0 4px;
-
-  font-size: 20px;
-
-  line-height: 1.15;
-
+  margin: 2px 0 3px;
+  font-size: 18px;
+  line-height: 1.2;
   letter-spacing: -0.025em;
-
   max-width: 900px;
-
-  max-height: 46px;
-
-  overflow: hidden;
-
-  display: -webkit-box;
-
-  -webkit-box-orient: vertical;
-
-  -webkit-line-clamp: 2;
-
   overflow-wrap: anywhere;
-
 }
 
 .ranking-card-header p {
-
   margin: 0;
-
   color: #94a3b8;
-
-  font-size: 11px;
-
+  font-size: 10px;
+  line-height: 1.35;
 }
+
 
 .ranking-card-actions {
 
@@ -1095,475 +1071,474 @@
 }
 
 /* =========================================================
-   CHART
+   CHART — TALLER LAYOUT
    ========================================================= */
 
-/*
-
-   IMPORTANT:
-
-   The old chart used:
-
-   height = max(500px, countries * 32px)
-
-   which makes the page very tall.
-
-   This version uses a fixed responsive height based
-
-   primarily on the viewport, so it fits a laptop much better.
-
-*/
-
 .ranking-chart {
-
   position: relative;
-
   width: 100%;
-
-  height: clamp(
-
-    800px,
-
-    calc(100vh - 240px),
-
-    760px
-
-  );
-
-  min-height: 800px;
-
-  padding: 8px 22px 12px;
-
+  height: 1100px;
+  min-height: 1100px;
+  padding: 4px 16px 8px;
   box-sizing: border-box;
-
   transition: opacity 0.15s ease;
-
 }
 
 .ranking-chart.loading {
-
   opacity: 0.72;
-
 }
 
 .ranking-chart-inner {
-
   position: relative;
-
+  display: flex;
+  flex-direction: column;
   width: 100%;
-
   height: 100%;
-
+  min-width: 0;
+  min-height: 0;
 }
 
 .ranking-chart-loading {
-
   position: absolute;
-
   z-index: 5;
-
-  top: 12px;
-
-  right: 18px;
-
+  top: 8px;
+  right: 12px;
   display: flex;
-
   align-items: center;
-
   gap: 6px;
-
   padding: 6px 9px;
-
   border: 1px solid #dbeafe;
-
   border-radius: 7px;
-
-  background: rgba(255, 255, 255, 0.94);
-
+  background: rgba(255, 255, 255, 0.96);
   color: #2563eb;
-
   font-size: 10px;
-
   font-weight: 700;
-
   box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
-
   pointer-events: none;
+}
 
+.ranking-chart-plot {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ranking-chart-plot .recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0;
 }
 
 .ranking-empty {
-
   height: 100%;
-
   display: flex;
-
   flex-direction: column;
-
   align-items: center;
-
   justify-content: center;
-
   text-align: center;
-
 }
 
 .ranking-empty h3 {
-
   margin: 0 0 5px;
-
   font-size: 14px;
-
 }
 
 .ranking-empty p {
-
   margin: 0;
-
   color: #94a3b8;
-
   font-size: 11px;
-
 }
+
 
 /* =========================================================
    TABLE
    ========================================================= */
 
 .ranking-table {
-
   border-top: 1px solid #eef2f7;
-
   overflow-x: auto;
-
 }
 
 .ranking-table-head,
-
 .ranking-row {
-
   min-width: 620px;
-
   display: grid;
-
   align-items: center;
-
 }
 
 .ranking-table-head {
-
   min-height: 36px;
-
   padding: 0 22px;
-
   background: #f8fafc;
-
   color: #94a3b8;
-
   font-size: 9px;
-
   font-weight: 800;
-
   letter-spacing: 0.08em;
-
   text-transform: uppercase;
-
 }
 
 .ranking-row {
-
   min-height: 43px;
-
   padding: 0 22px;
-
   border-top: 1px solid #f1f5f9;
-
   color: #475569;
-
   font-size: 11px;
-
 }
 
 .ranking-row:hover {
-
   background: #fafcff;
-
 }
 
 .ranking-row > strong {
-
   color: #94a3b8;
-
 }
 
 .ranking-row > span {
-
   min-width: 0;
-
   overflow: hidden;
-
   text-overflow: ellipsis;
-
   white-space: nowrap;
-
 }
 
 .ranking-row.italy {
-
   background: #f8fbff;
-
 }
 
 .ranking-row.italy > strong,
-
 .ranking-row.italy > span:nth-child(2) {
-
   color: #2563eb;
-
   font-weight: 800;
-
 }
 
 .ranking-total {
-
   color: #0f172a;
-
   font-weight: 800;
-
 }
+
 
 /* =========================================================
    SPINNER
    ========================================================= */
 
 .spin {
-
   animation: ranking-spin 0.85s linear infinite;
-
 }
 
 @keyframes ranking-spin {
-
-  from {
-
-    transform: rotate(0deg);
-
-  }
-
-  to {
-
-    transform: rotate(360deg);
-
-  }
-
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
+
 
 /* =========================================================
    LAPTOP / TABLET
    ========================================================= */
 
 @media (max-width: 1100px) {
-
   .ranking-page {
-
     padding: 22px 22px 40px;
-
   }
 
   .ranking-controls {
-
     gap: 10px;
-
   }
 
   .ranking-indicator-control {
-
     max-width: none;
-
     flex-basis: 100%;
-
   }
 
   .ranking-year-control,
-
   .ranking-show-control {
-
     width: 120px;
-
   }
 
   .ranking-order-control {
-
     flex: 1 1 190px;
-
   }
 
   .ranking-group-control {
-
     width: 90px;
-
   }
 
   .ranking-chart {
-
-    height: clamp(
-
-      800px,
-
-      calc(100vh - 280px),
-
-      680px
-
-    );
-
-    min-height: 800px;
-
+    height: 600px;
+    min-height: 600px;
   }
-
 }
+
 
 /* =========================================================
    SMALL LAPTOP / TABLET
    ========================================================= */
 
 @media (max-width: 800px) {
-
   .ranking-page {
-
     padding: 18px 16px 32px;
-
   }
 
   .ranking-heading {
-
     flex-direction: column;
-
   }
 
   .italy-rank-card {
-
     width: 100%;
-
     box-sizing: border-box;
-
     text-align: left;
-
   }
 
   .ranking-controls {
-
     display: grid;
-
     grid-template-columns: 1fr 1fr;
-
   }
 
   .ranking-indicator-control {
-
     grid-column: 1 / -1;
-
     width: 100%;
-
   }
 
   .ranking-year-control,
-
   .ranking-show-control,
-
   .ranking-group-control {
-
     width: 100%;
-
   }
 
   .ranking-order-control {
-
     width: 100%;
-
   }
 
   .ranking-card-header {
-
     flex-direction: column;
-
   }
 
   .ranking-card-actions {
-
     width: 100%;
-
     justify-content: flex-start;
-
   }
 
   .ranking-chart {
-
-    height: 800px;
-
-    min-height: 800px;
-
+    height: 550px;
+    min-height: 550px;
   }
-
 }
+
 
 /* =========================================================
    MOBILE
    ========================================================= */
 
 @media (max-width: 560px) {
-
   .ranking-page {
-
     padding: 16px 12px 28px;
-
   }
 
   .ranking-controls {
-
     grid-template-columns: 1fr;
-
   }
 
   .ranking-indicator-control {
-
     grid-column: auto;
-
   }
 
   .ranking-chart {
-
-    height: 800px;
-
-    min-height: 800px;
-
+    height: 450px;
+    min-height: 450px;
     padding-left: 4px;
-
     padding-right: 4px;
-
   }
 
   .ranking-card-header {
-
     padding: 15px 16px 11px;
-
   }
 
   .ranking-card-header h2 {
-
     font-size: 18px;
-
     max-height: 42px;
-
   }
 
   .ranking-table-head,
-
   .ranking-row {
-
     padding-left: 14px;
-
     padding-right: 14px;
+  }
+}
 
+
+/* =========================================================
+   COMPACT INDICATOR DETAILS AND CHART LEGEND
+   ========================================================= */
+
+.ranking-subtitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ranking-inline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ranking-inline-toggle:hover {
+  color: #1d4ed8;
+}
+
+.ranking-inline-toggle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.ranking-indicator-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+.ranking-indicator-detail,
+.ranking-custom-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  color: #475569;
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.ranking-legend-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  margin-top: 3px;
+  border-radius: 50%;
+}
+
+.ranking-legend-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 0 4px 6px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.ranking-custom-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 7px 14px;
+  flex: 0 0 auto;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.ranking-custom-legend-item {
+  flex: 0 1 220px;
+}
+
+@media (max-width: 560px) {
+  .ranking-indicator-details {
+    grid-template-columns: 1fr;
   }
 
+  .ranking-custom-legend-item {
+    flex-basis: 100%;
+  }
+}
+
+
+/* =========================================================
+   INDICATOR SELECTOR — MATCH HEIGHT OF OTHER SELECTORS
+   ========================================================= */
+
+.ranking-indicator-control .ranking-selection-control {
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.ranking-indicator-control .ranking-selection-content {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ranking-indicator-control .ranking-selected-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ranking-indicator-control .ranking-selection-tag {
+  flex: 0 0 auto;
+  max-width: 150px;
+  white-space: nowrap;
+}
+
+.ranking-indicator-control .ranking-selection-more {
+  flex: 0 0 auto;
+}
+
+/* =========================================================
+   FORCE RANKING CHART HEIGHT
+   ========================================================= */
+
+.ranking-chart {
+  height: 650px !important;
+  min-height: 650px !important;
+}
+
+@media (max-width: 1100px) {
+  .ranking-chart {
+    height: 600px !important;
+    min-height: 600px !important;
+  }
+}
+
+@media (max-width: 800px) {
+  .ranking-chart {
+    height: 550px !important;
+    min-height: 550px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .ranking-chart {
+    height: 450px !important;
+    min-height: 450px !important;
+  }
 }

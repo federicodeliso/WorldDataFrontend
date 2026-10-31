@@ -585,3 +585,273 @@
     padding: 5px 4px 10px;
   }
 }
+
+
+/* =========================================
+   COMPOSITION PAGE — LAYOUT FIX
+   Keep this block at the VERY BOTTOM
+   of Composition.css
+   ========================================= */
+
+.composition-page {
+  width: 100%;
+  max-width: 1440px;
+  min-width: 0;
+  margin: 0 auto;
+  padding-bottom: 80px;
+  box-sizing: border-box;
+}
+
+.composition-controls,
+.composition-grid,
+.composition-card,
+.composition-card-header {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.composition-controls {
+  width: 100%;
+  grid-template-columns:
+    minmax(0, 1.45fr)
+    minmax(0, 1.6fr)
+    minmax(100px, 120px)
+    minmax(100px, 120px);
+}
+
+.composition-grid {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.composition-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.composition-card-header > div:first-child {
+  min-width: 0;
+}
+
+.composition-card-actions {
+  flex-shrink: 0;
+}
+
+.composition-chart {
+  width: 100%;
+  height: 520px !important;
+  min-height: 520px;
+  min-width: 0;
+  padding: 5px 12px 10px;
+  box-sizing: border-box;
+}
+
+/* Medium screens */
+@media (max-width: 1100px) {
+  .composition-controls {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      100px
+      100px;
+    gap: 12px;
+    padding: 15px;
+  }
+
+  .composition-chart {
+    height: 500px !important;
+    min-height: 500px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 900px) {
+  .composition-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composition-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .composition-card.single {
+    grid-column: auto;
+  }
+
+  .composition-chart {
+    height: 500px !important;
+    min-height: 500px;
+  }
+}
+
+/* Phones */
+@media (max-width: 700px) {
+  .composition-page {
+    padding-bottom: 45px;
+  }
+
+  .composition-heading h1 {
+    font-size: 32px;
+  }
+
+  .composition-controls {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .composition-year-control {
+    max-width: none;
+  }
+
+  .composition-card-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+  }
+
+  .composition-card-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .composition-chart {
+    height: 450px !important;
+    min-height: 450px;
+    padding: 5px 4px 10px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 420px) {
+  .composition-heading h1 {
+    font-size: 28px;
+  }
+
+  .composition-card-header {
+    padding: 16px;
+  }
+
+  .composition-chart {
+    height: 400px !important;
+    min-height: 400px;
+  }
+}
+
+
+/* Keep Composition controls accessible while scrolling */
+.composition-controls {
+  position: sticky !important;
+  top: 12px;
+  z-index: 1000;
+  align-self: start;
+  background: var(--surface);
+}
+
+/* Keep the open selector dropdown above the charts */
+.composition-selector {
+  position: relative;
+  min-width: 0;
+}
+
+.composition-selector-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1100;
+  max-height: min(420px, 65vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.composition-list {
+  min-height: 0;
+  max-height: min(330px, 50vh);
+  overflow-y: auto;
+}
+
+/* Avoid sticky controls taking too much space on small screens */
+@media (max-width: 700px) {
+  .composition-controls {
+    top: 8px;
+    gap: 10px;
+    padding: 12px;
+  }
+}
+
+
+.composition-option-color {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  color: #fff;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.composition-option:hover .composition-option-color {
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
+}
+
+
+/* Compact, horizontally scrollable chart legend */
+.composition-legend-scroll {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  height: 30px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 0 4px 4px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+}
+
+.composition-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  max-width: 220px;
+  padding: 3px 5px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #475569;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.composition-legend-item:hover {
+  background: #f1f5f9;
+}
+
+.composition-legend-item.is-hidden {
+  opacity: 0.4;
+}
+
+.composition-legend-swatch {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 2px;
+}
+
+.composition-legend-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
